@@ -1,0 +1,70 @@
+# 17. PLANNING TÉLÉTRAVAIL - SYNC CALENDRIER
+# ============================================================
+# ============================================
+# VERIFICATION / INITIALISATION DATES TELETRAVAIL
+# ============================================
+
+# Vérification entrées agenda toutes les heures
+- id: planning_tt_verification_periodique
+  alias: "Planning TT - Vérification périodique"
+  mode: single
+  trigger:
+    - platform: time_pattern
+      hours: "/1"
+  condition:
+    # Vérifier que l'auto-sync est activé
+    - condition: state
+      entity_id: input_boolean.auto_sync_teletravail
+      state: "on"
+  action:
+    - service: script.sync_planning_teletravail
+      data:
+        notifier: false
+        
+# Reset hebdomadaire le lundi
+- id: planning_tt_reset_lundi
+  alias: "Planning TT - Reset lundi matin"
+  trigger:
+    - platform: time
+      at: "00:15:00"
+  condition:
+    - condition: template
+      value_template: "{{ now().weekday() == 0 }}"
+    # Vérifier que l'auto-sync est activé
+    - condition: state
+      entity_id: input_boolean.auto_sync_teletravail
+      state: "on"
+  action:
+    - service: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.teletravail_modification_manuelle
+    - service: script.sync_planning_teletravail
+      data:
+        notifier: true
+        
+# Détection modifications manuelles
+- id: planning_tt_detection_manuel
+  alias: "Planning TT - Détection modification manuelle"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id:
+        - input_datetime.calendar_teletravail_debut
+        - input_datetime.calendar_teletravail_fin
+  condition:
+    - condition: template
+      value_template: >
+        {{ trigger.to_state.context.parent_id is none or
+           (trigger.to_state.context.parent_id is not none and
+            'script.sync_planning_teletravail' not in trigger.to_state.context.parent_id) }}
+  action:
+    - service: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.teletravail_modification_manuelle
+    - service: logbook.log
+      data:
+        name: "Planning Télétravail"
+        message: "⚠️ Modification manuelle - Auto-sync désactivé jusqu'au lundi"
+# ============================================================
+
+# ============================================================

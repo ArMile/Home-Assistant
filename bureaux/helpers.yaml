@@ -1,0 +1,227 @@
+# ============================================================
+# BUREAUX - HELPERS
+# Gestion switches et coupures automatiques
+# Bureau Arnaud / Bureau Maxence / Bureau Julie
+# ============================================================
+
+input_boolean:
+
+  # Coupures automatiques
+  bureau_arnaud_auto_coupure:
+    name: Bureau Arnaud - Coupure automatique
+    icon: mdi:power-settings
+
+  bureau_julie_auto_coupure:
+    name: Bureau Julie - Coupure automatique
+    icon: mdi:power-settings
+
+  bureau_maxence_auto_coupure:
+    name: Bureau Maxence - Coupure automatique
+    icon: mdi:power-settings
+
+  bureau_maxence_extinction_auto_forcee:
+    name: Bureau Maxence - Extinction automatique forcée activée
+    icon: mdi:sleep
+
+  bureau_maxence_extinction_manuelle:
+    name: Bureau Maxence - Extinction manuelle immédiate
+    icon: mdi:hand-back-right
+
+input_datetime:
+
+  # Bureau Arnaud
+  bureau_arnaud_last_on:
+    name: Bureau Arnaud - Dernier allumage
+    has_date: true
+    has_time: true
+
+  bureau_arnaud_last_off:
+    name: Bureau Arnaud - Dernière extinction
+    has_date: true
+    has_time: true
+
+  bureau_arnaud_last_switch_off:
+    name: Bureau Arnaud - Dernière coupure switch
+    has_date: true
+    has_time: true
+
+  bureau_arnaud_heure_limite_semaine:
+    name: Bureau Arnaud - Heure limite semaine
+    has_date: false
+    has_time: true
+
+  bureau_arnaud_heure_limite_weekend:
+    name: Bureau Arnaud - Heure limite weekend
+    has_date: false
+    has_time: true
+
+  bureau_arnaud_rallumage_matin:
+    name: Bureau Arnaud - Rallumage matin
+    has_date: false
+    has_time: true
+    icon: mdi:weather-sunset-up
+
+  # Bureau Maxence
+  bureau_maxence_last_on:
+    name: Bureau Maxence - Dernier allumage
+    has_date: true
+    has_time: true
+    icon: mdi:clock-start
+
+  bureau_maxence_last_off:
+    name: Bureau Maxence - Dernière extinction
+    has_date: true
+    has_time: true
+    icon: mdi:clock-end
+
+  bureau_maxence_last_switch_off:
+    name: Bureau Maxence - Dernière coupure switch
+    has_date: true
+    has_time: true
+    icon: mdi:power-plug-off
+
+  bureau_maxence_heure_limite_semaine:
+    name: Bureau Maxence - Heure limite semaine
+    has_date: false
+    has_time: true
+    icon: mdi:clock-end
+
+  bureau_maxence_heure_limite_weekend:
+    name: Bureau Maxence - Heure limite weekend
+    has_date: false
+    has_time: true
+    icon: mdi:clock-end
+
+  bureau_maxence_rallumage_matin:
+    name: Bureau Maxence - Rallumage matin
+    has_date: false
+    has_time: true
+    icon: mdi:weather-sunset-up
+
+  bureau_maxence_extinction_forcee_ecole:
+    name: Bureau Maxence - Extinction forcée (école)
+    has_date: false
+    has_time: true
+    icon: mdi:school
+
+  bureau_maxence_extinction_forcee_weekend:
+    name: Bureau Maxence - Extinction forcée (weekend)
+    has_date: false
+    has_time: true
+    icon: mdi:party-popper
+
+  # Bureau Julie
+  bureau_julie_last_on:
+    name: Bureau Julie - Dernier allumage
+    has_date: true
+    has_time: true
+    icon: mdi:clock-start
+
+  bureau_julie_last_off:
+    name: Bureau Julie - Dernière extinction
+    has_date: true
+    has_time: true
+    icon: mdi:clock-end
+
+  bureau_julie_last_switch_off:
+    name: Bureau Julie - Dernière coupure switch
+    has_date: true
+    has_time: true
+    icon: mdi:power-plug-off
+
+  bureau_julie_heure_limite_semaine:
+    name: Bureau Julie - Heure limite semaine
+    has_date: false
+    has_time: true
+    icon: mdi:clock-end
+
+  bureau_julie_heure_limite_weekend:
+    name: Bureau Julie - Heure limite weekend
+    has_date: false
+    has_time: true
+    icon: mdi:clock-end
+
+  bureau_julie_rallumage_matin:
+    name: Bureau Julie - Rallumage matin
+    has_date: false
+    has_time: true
+    icon: mdi:weather-sunset-up
+
+template:
+  - binary_sensor:
+      - name: "Bureau Arnaud - Réellement ON"
+        unique_id: bureau_arnaud_reellement_on
+        device_class: power
+        state: >
+          {{ states('sensor.bureau_arnaud_power') | float(0) > 30 }}
+        availability: >
+          {{ states('sensor.bureau_arnaud_power') not in ['unknown', 'unavailable'] }}
+
+      - name: "Bureau Maxence - Réellement ON"
+        unique_id: bureau_maxence_reellement_on
+        device_class: power
+        state: >
+          {{ states('sensor.bureau_maxence_power') | float(0) > 30 }}
+        availability: >
+          {{ states('sensor.bureau_maxence_power') not in ['unknown', 'unavailable'] }}
+
+      - name: "Bureau Julie - Réellement ON"
+        unique_id: bureau_julie_reellement_on
+        device_class: power
+        state: >
+          {{ states('sensor.bureau_julie_power') | float(0) > 30 }}
+        availability: >
+          {{ states('sensor.bureau_julie_power') not in ['unknown', 'unavailable'] }}
+
+utility_meter:
+
+  # Bureau Arnaud
+  bureau_arnaud_conso_journaliere:
+    source: sensor.bureau_arnaud_energy
+    cycle: daily
+
+  bureau_arnaud_conso_hebdomadaire:
+    source: sensor.bureau_arnaud_energy
+    cycle: weekly
+
+  bureau_arnaud_conso_mensuelle:
+    source: sensor.bureau_arnaud_energy
+    cycle: monthly
+
+  bureau_arnaud_conso_annuelle:
+    source: sensor.bureau_arnaud_energy
+    cycle: yearly
+
+  # Bureau Maxence
+  bureau_maxence_conso_journaliere:
+    source: sensor.bureau_maxence_energy
+    cycle: daily
+
+  bureau_maxence_conso_hebdomadaire:
+    source: sensor.bureau_maxence_energy
+    cycle: weekly
+
+  bureau_maxence_conso_mensuelle:
+    source: sensor.bureau_maxence_energy
+    cycle: monthly
+
+  bureau_maxence_conso_annuelle:
+    source: sensor.bureau_maxence_energy
+    cycle: yearly
+
+  # Bureau Julie
+  bureau_julie_conso_journaliere:
+    source: sensor.bureau_julie_energy
+    cycle: daily
+
+  bureau_julie_conso_hebdomadaire:
+    source: sensor.bureau_julie_energy
+    cycle: weekly
+
+  bureau_julie_conso_mensuelle:
+    source: sensor.bureau_julie_energy
+    cycle: monthly
+
+  bureau_julie_conso_annuelle:
+    source: sensor.bureau_julie_energy
+    cycle: yearly

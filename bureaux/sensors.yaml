@@ -1,0 +1,110 @@
+# ============================================================
+# BUREAUX - SENSORS (platform: history_stats)
+# Temps de fonctionnement réel des 3 bureaux
+# Basés sur binary_sensor.*_reellement_on (seuil > 30W)
+# ============================================================
+
+# ------------------------------------------------------------
+# BUREAU ARNAUD
+# ------------------------------------------------------------
+- platform: history_stats
+  name: "Bureau Arnaud - Temps ON aujourd'hui"
+  entity_id: binary_sensor.bureau_arnaud_reellement_on
+  state: "on"
+  type: time
+  start: "{{ now().replace(hour=0, minute=0, second=0) }}"
+  end: "{{ now() }}"
+
+- platform: history_stats
+  name: "Bureau Arnaud - Temps ON semaine"
+  entity_id: binary_sensor.bureau_arnaud_reellement_on
+  state: "on"
+  type: time
+  start: "{{ as_timestamp(now().replace(hour=0, minute=0, second=0)) - now().weekday() * 86400 }}"
+  end: "{{ now() }}"
+
+- platform: history_stats
+  name: "Bureau Arnaud - Temps ON mois"
+  entity_id: binary_sensor.bureau_arnaud_reellement_on
+  state: "on"
+  type: time
+  start: "{{ now().replace(day=1, hour=0, minute=0, second=0) }}"
+  end: "{{ now() }}"
+
+- platform: history_stats
+  name: "Bureau Arnaud - Temps ON année"
+  entity_id: binary_sensor.bureau_arnaud_reellement_on
+  state: "on"
+  type: time
+  start: "{{ now().replace(month=1, day=1, hour=0, minute=0, second=0) }}"
+  end: "{{ now() }}"
+
+# ------------------------------------------------------------
+# BUREAU MAXENCE
+# ------------------------------------------------------------
+- platform: history_stats
+  name: Bureau Maxence - Temps ON aujourd'hui
+  entity_id: binary_sensor.bureau_maxence_reellement_on
+  state: "on"
+  type: time
+  start: "{{ now().replace(hour=0, minute=0, second=0) }}"
+  end: "{{ now() }}"
+
+- platform: history_stats
+  name: Bureau Maxence - Temps ON semaine
+  entity_id: binary_sensor.bureau_maxence_reellement_on
+  state: "on"
+  type: time
+  start: "{{ as_timestamp(now().replace(hour=0, minute=0, second=0)) - now().weekday() * 86400 }}"
+  end: "{{ now() }}"
+
+- platform: history_stats
+  name: Bureau Maxence - Temps ON mois
+  entity_id: binary_sensor.bureau_maxence_reellement_on
+  state: "on"
+  type: time
+  start: "{{ now().replace(day=1, hour=0, minute=0, second=0) }}"
+  end: "{{ now() }}"
+
+- platform: history_stats
+  name: Bureau Maxence - Temps ON année
+  entity_id: binary_sensor.bureau_maxence_reellement_on
+  state: "on"
+  type: time
+  start: "{{ now().replace(month=1, day=1, hour=0, minute=0, second=0) }}"
+  end: "{{ now() }}"
+
+# ------------------------------------------------------------
+# BUREAU JULIE
+# ------------------------------------------------------------
+- platform: history_stats
+  name: Bureau Julie - Temps ON aujourd'hui
+  entity_id: binary_sensor.bureau_julie_reellement_on
+  state: "on"
+  type: time
+  start: "{{ now().replace(hour=0, minute=0, second=0) }}"
+  end: "{{ now() }}"
+
+- platform: history_stats
+  name: Bureau Julie - Temps ON semaine
+  entity_id: binary_sensor.bureau_julie_reellement_on
+  state: "on"
+  type: time
+  start: "{{ as_timestamp(now().replace(hour=0, minute=0, second=0)) - now().weekday() * 86400 }}"
+  end: "{{ now() }}"
+
+- platform: history_stats
+  name: Bureau Julie - Temps ON mois
+  entity_id: binary_sensor.bureau_julie_reellement_on
+  state: "on"
+  type: time
+  start: "{{ now().replace(day=1, hour=0, minute=0, second=0) }}"
+  end: "{{ now() }}"
+
+- platform: history_stats
+  name: Bureau Julie - Temps ON année
+  entity_id: binary_sensor.bureau_julie_reellement_on
+  state: "on"
+  type: time
+  start: "{{ now().replace(month=1, day=1, hour=0, minute=0, second=0) }}"
+  end: "{{ now() }}"

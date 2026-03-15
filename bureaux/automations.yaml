@@ -1,0 +1,1916 @@
+# 14. BUREAU ARNAUD
+# ============================================================
+# ============================================================
+# AUTOMATIONS BUREAU ARNAUD - VERSION COMPLÈTE
+# ============================================================
+
+# ------------------------------------------------------------
+# TRACES : Enregistrement allumage/extinction/coupure
+# ------------------------------------------------------------
+
+# 1. Trace allumage bureau
+- id: bureau_arnaud_trace_allumage
+  alias: "Bureau Arnaud - Trace allumage"
+  description: "Enregistre l'heure d'allumage du bureau"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.bureau_arnaud_power
+      above: 30
+      for:
+        minutes: 2
+  condition:
+    - condition: template
+      value_template: >
+        {% set last_changed = as_timestamp(states.input_datetime.bureau_arnaud_last_on.last_changed) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set minutes_since = ((now_ts - last_changed) / 60) | int %}
+        {{ minutes_since > 15 }}
+  action:
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.bureau_arnaud_last_on
+      data:
+        datetime: "{{ now() }}"
+
+# 2. Trace extinction bureau
+- id: bureau_arnaud_trace_extinction
+  alias: "Bureau Arnaud - Trace extinction"
+  description: "Enregistre l'heure d'extinction du bureau"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.bureau_arnaud_power
+      below: 30
+      for:
+        minutes: 1
+  condition:
+    - condition: template
+      value_template: >
+        {% set last_changed = as_timestamp(states.input_datetime.bureau_arnaud_last_off.last_changed) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set minutes_since = ((now_ts - last_changed) / 60) | int %}
+        {{ minutes_since > 15 }}
+  action:
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.bureau_arnaud_last_off
+      data:
+        datetime: "{{ now() }}"
+
+# 3. Trace coupure switch
+- id: bureau_arnaud_trace_coupure_switch
+  alias: "Bureau Arnaud - Trace coupure switch"
+  description: "Enregistre toutes les coupures du switch"
+  trigger:
+    - platform: state
+      entity_id: switch.bureau_arnaud
+      to: "off"
+      from: "on"
+  action:
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.bureau_arnaud_last_switch_off
+      data:
+        datetime: "{{ now() }}"
+
+# ------------------------------------------------------------
+# COUPURE AUTOMATIQUE
+# ------------------------------------------------------------
+
+# 4. Coupure automatique (30 min après extinction si heure limite dépassée)
+- id: bureau_arnaud_coupure_automatique
+  alias: "Bureau Arnaud - Coupure automatique"
+  description: "Coupe le bureau 30 min après extinction si heure limite dépassée"
+  trigger:
+    - platform: time_pattern
+      minutes: "/5"
+  condition:
+    # Condition 1 : Coupure auto activée
+    - condition: state
+      entity_id: input_boolean.bureau_arnaud_auto_coupure
+      state: "on"
+    
+    # Condition 2 : Switch ON
+    - condition: state
+      entity_id: switch.bureau_arnaud
+      state: "on"
+    
+    # Condition 3 : Pas mode vacances
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    
+    # Condition 4 : Bureau éteint (< 30W)
+    - condition: numeric_state
+      entity_id: sensor.bureau_arnaud_power
+      below: 30
+    
+    # Condition 5 : Extinction depuis au moins 30 min
+    - condition: template
+      value_template: >
+        {% set last_off = as_timestamp(states('input_datetime.bureau_arnaud_last_off')) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set minutes_since = ((now_ts - last_off) / 60) | int %}
+        {{ minutes_since >= 30 }}
+    
+    # Condition 6 : Heure limite dépassée (AVEC GESTION MINUIT)
+    - condition: template
+      value_template: >
+        {% set jour_semaine = now().weekday() %}
+        {% set est_ferie = is_state('calendar.jours_feries_en_france', 'on') %}
+        {% set est_weekend_coupure = (jour_semaine in [4, 5, 6]) or est_ferie %}
+        
+        {% if est_weekend_coupure %}
+          {% set heure_limite_str = states('input_datetime.bureau_arnaud_heure_limite_weekend') %}
+        {% else %}
+          {% set heure_limite_str = states('input_datetime.bureau_arnaud_heure_limite_semaine') %}
+        {% endif %}
+        
+        {% set heure_parts = heure_limite_str.split(':') %}
+        {% set heure_limite_minutes = heure_parts[0]|int * 60 + heure_parts[1]|int %}
+        {% set heure_actuelle = now().hour * 60 + now().minute %}
+        
+        {# Si on est après minuit (00:00-05:59), considérer qu'on est après la limite de la veille #}
+        {% if heure_actuelle < 360 %}
+          true
+        {% else %}
+          {{ heure_actuelle >= heure_limite_minutes }}
+        {% endif %}
+    
+    # Condition 7 : PAS DE RALLUMAGE RÉCENT (au moins 10 min)
+    - condition: template
+      value_template: >
+        {% set switch_last_changed = as_timestamp(states.switch.bureau_arnaud.last_changed) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set minutes_since_change = ((now_ts - switch_last_changed) / 60) | int %}
+        {{ minutes_since_change > 10 }}
+    
+    # Condition 8 : PAS DANS PLAGE ACTIVE (Mode Normal semaine uniquement)
+    - condition: template
+      value_template: >
+        {% set now_hour = now().hour %}
+        {% set now_minute = now().minute %}
+        {% set heure_actuelle = now_hour * 60 + now_minute %}
+        {% set jour_semaine = now().weekday() %}
+        {% set est_ferie = is_state('calendar.jours_feries_en_france', 'on') %}
+        {% set est_weekend = (jour_semaine in [5, 6]) or est_ferie %}
+        
+        {% set mode_normal = is_state('input_boolean.chauffage_manuel', 'off') 
+                         and is_state('input_boolean.mode_vacances', 'off')
+                         and is_state('input_boolean.mode_planning_teletravail', 'off')
+                         and is_state('input_boolean.mode_planning_vacances_maison', 'off')
+                         and is_state('input_boolean.mode_planning_weekend_prolonge', 'off') %}
+        
+        {% if mode_normal and not est_weekend %}
+          {# Mode Normal semaine : protéger plage rallumage → limite #}
+          {% if jour_semaine == 0 %}
+            {% set rallumage_str = states('input_datetime.planning_normal_lundi_soir_debut') %}
+          {% elif jour_semaine == 1 %}
+            {% set rallumage_str = states('input_datetime.planning_normal_mardi_soir_debut') %}
+          {% elif jour_semaine == 2 %}
+            {% set rallumage_str = states('input_datetime.planning_normal_mercredi_soir_debut') %}
+          {% elif jour_semaine == 3 %}
+            {% set rallumage_str = states('input_datetime.planning_normal_jeudi_soir_debut') %}
+          {% elif jour_semaine == 4 %}
+            {% set rallumage_str = states('input_datetime.planning_normal_vendredi_soir_debut') %}
+          {% else %}
+            {% set rallumage_str = '00:00:00' %}
+          {% endif %}
+          
+          {% set rallumage_parts = rallumage_str.split(':') %}
+          {% set rallumage_minutes = rallumage_parts[0]|int * 60 + rallumage_parts[1]|int %}
+          
+          {% set limite_str = states('input_datetime.bureau_arnaud_heure_limite_semaine') %}
+          {% set limite_parts = limite_str.split(':') %}
+          {% set limite_minutes = limite_parts[0]|int * 60 + limite_parts[1]|int %}
+          
+          {# Autoriser coupure si HORS de la plage rallumage → limite #}
+          {{ heure_actuelle < rallumage_minutes or heure_actuelle >= limite_minutes }}
+        {% else %}
+          {# Modes actifs ou weekend : pas de protection de plage #}
+          true
+        {% endif %}
+    
+    # Condition 9 : EXTINCTION RÉCENTE (< 3 heures)
+    - condition: template
+      value_template: >
+        {% set last_off = as_timestamp(states('input_datetime.bureau_arnaud_last_off')) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set heures_depuis = ((now_ts - last_off) / 3600) | float %}
+        {{ heures_depuis < 3 }}
+  
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id: switch.bureau_arnaud
+    
+    - delay:
+        seconds: 2
+  
+  mode: single
+# ============================================================
+
+
+# ------------------------------------------------------------
+# RALLUMAGES
+# ------------------------------------------------------------
+
+# 5. Rallumage weekend + jours fériés (Mode Normal)
+- id: bureau_arnaud_rallumage_weekend_normal
+  alias: "Bureau Arnaud - Rallumage weekend (Mode Normal)"
+  description: "Rallume le bureau sam-dim + jours fériés en mode Normal"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.bureau_arnaud_rallumage_matin') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: or
+      conditions:
+        - condition: template
+          value_template: "{{ now().weekday() in [5, 6] }}"
+        - condition: state
+          entity_id: calendar.jours_feries_en_france
+          state: "on"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_arnaud
+
+# 6. Rallumage matinal (autres modes)
+- id: bureau_arnaud_rallumage_autres_modes
+  alias: "Bureau Arnaud - Rallumage matinal (Autres modes)"
+  description: "Rallume le bureau tous les jours en Télétravail/Vacances Maison/Weekend+"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.bureau_arnaud_rallumage_matin') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: input_boolean.mode_planning_teletravail
+          state: "on"
+        - condition: state
+          entity_id: input_boolean.mode_planning_vacances_maison
+          state: "on"
+        - condition: state
+          entity_id: input_boolean.mode_planning_weekend_prolonge
+          state: "on"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_arnaud
+
+# 7. Rallumage soir lundi (Mode Normal)
+- id: bureau_arnaud_rallumage_soir_lundi
+  alias: "Bureau Arnaud - Rallumage soir lundi"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.planning_normal_lundi_soir_debut') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: template
+      value_template: "{{ now().weekday() == 0 }}"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_arnaud
+
+# 8. Rallumage soir mardi (Mode Normal)
+- id: bureau_arnaud_rallumage_soir_mardi
+  alias: "Bureau Arnaud - Rallumage soir mardi"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.planning_normal_mardi_soir_debut') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: template
+      value_template: "{{ now().weekday() == 1 }}"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_arnaud
+
+# 9. Rallumage soir mercredi (Mode Normal)
+- id: bureau_arnaud_rallumage_soir_mercredi
+  alias: "Bureau Arnaud - Rallumage soir mercredi"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.planning_normal_mercredi_soir_debut') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: template
+      value_template: "{{ now().weekday() == 2 }}"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_arnaud
+
+# 10. Rallumage soir jeudi (Mode Normal)
+- id: bureau_arnaud_rallumage_soir_jeudi
+  alias: "Bureau Arnaud - Rallumage soir jeudi"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.planning_normal_jeudi_soir_debut') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: template
+      value_template: "{{ now().weekday() == 3 }}"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_arnaud
+
+# 11. Rallumage soir vendredi (Mode Normal)
+- id: bureau_arnaud_rallumage_soir_vendredi
+  alias: "Bureau Arnaud - Rallumage soir vendredi"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.planning_normal_vendredi_soir_debut') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: template
+      value_template: "{{ now().weekday() == 4 }}"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_arnaud
+
+# 12. Rallumage si passage Modes Télétravail/Vacances Maison/Weekend+/Jour férié
+- id: bureau_arnaud_rallumage_changement_mode
+  alias: "Bureau Arnaud - Rallumage changement mode actif"
+  description: "Rallume le bureau immédiatement lors du passage en mode Télétravail/Vacances Maison/Weekend+"
+  trigger:
+    - platform: state
+      entity_id: input_boolean.mode_planning_teletravail
+      from: "off"
+      to: "on"
+      id: teletravail
+    - platform: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      from: "off"
+      to: "on"
+      id: vacances_maison
+    - platform: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      from: "off"
+      to: "on"
+      id: weekend_prolonge
+  condition:
+    # Pas en mode vacances
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    
+    # Switch actuellement OFF
+    - condition: state
+      entity_id: switch.bureau_arnaud
+      state: "off"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_arnaud
+        
+# ------------------------------------------------------------
+# MODE VACANCES
+# ------------------------------------------------------------
+
+# 12. Coupure immédiate mode vacances
+- id: bureau_arnaud_mode_vacances_coupure
+  alias: "Bureau Arnaud - Mode Vacances - Coupure"
+  trigger:
+    - platform: state
+      entity_id: input_boolean.mode_vacances
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: switch.bureau_arnaud
+      state: "on"
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id: switch.bureau_arnaud
+# ============================================================
+
+# ============================================================
+# NOTIFICATIONS EMAIL TV SALON
+# ============================================================
+- id: tv_salon_notification_disjoncteur
+  alias: "TV Salon - Notification changement disjoncteur"
+  description: "Envoie un email à chaque changement d'état du disjoncteur"
+  trigger:
+    - platform: state
+      entity_id: switch.salon_tv_home_cinema
+      from: "off"
+      to: "on"
+      id: allumage
+    - platform: state
+      entity_id: switch.salon_tv_home_cinema
+      from: "on"
+      to: "off"
+      id: coupure
+  action:
+    - service: notify.ha_email
+      data:
+        title: |
+          📺 TV Salon - {% if trigger.id == 'allumage' %}Disjoncteur allumé{% else %}Disjoncteur coupé{% endif %}
+        message: |
+          {% if trigger.id == 'allumage' %}
+          Le disjoncteur TV a été allumé.
+          {% else %}
+          Le disjoncteur TV a été coupé.
+          {% endif %}
+          
+          📅 Heure : {{ now().strftime('%d/%m/%Y à %H:%M:%S') }}
+          
+          📊 Contexte :
+          • Disjoncteur : {{ states('switch.salon_tv_home_cinema') }}
+          • TV : {{ states('media_player.lg_webos_tv_oled77g54lw') }}
+          • Puissance : {{ states('sensor.salon_tv_home_cinema_power') }} W
+          • Mode planning : {% if is_state('input_boolean.mode_vacances', 'on') %}Vacances{% elif is_state('input_boolean.chauffage_manuel', 'on') %}Manuel{% elif is_state('input_boolean.mode_planning_teletravail', 'on') %}Télétravail{% elif is_state('input_boolean.mode_planning_vacances_maison', 'on') %}Vacances Maison{% elif is_state('input_boolean.mode_planning_weekend_prolonge', 'on') %}Weekend+{% else %}Planning Normal{% endif %}
+          • Jour : {{ ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'][now().weekday()] }}
+          • Jour férié : {{ 'Oui' if is_state('calendar.jours_feries_en_france', 'on') else 'Non' }}
+          
+          ⏱️ Temps de fonctionnement :
+          • Aujourd'hui : {{ states('sensor.tv_salon_temps_on_aujourd_hui') | float(0) | round(2) }} h
+          • Cette semaine : {{ states('sensor.tv_salon_temps_on_semaine') | float(0) | round(2) }} h
+          • Ce mois : {{ states('sensor.tv_salon_temps_on_mois') | float(0) | round(2) }} h
+          
+          ⚡ Consommation :
+          • Aujourd'hui : {{ states('sensor.tv_salon_conso_journaliere') | float(0) | round(3) }} kWh
+          • Cette semaine : {{ states('sensor.tv_salon_conso_hebdomadaire') | float(0) | round(3) }} kWh
+          • Ce mois : {{ states('sensor.tv_salon_conso_mensuelle') | float(0) | round(3) }} kWh
+# ============================================================
+
+# ============================================================
+# NOTIFICATIONS EMAIL BUREAU ARNAUD
+# ============================================================
+- id: bureau_arnaud_notification_switch
+  alias: "Bureau Arnaud - Notification changement switch"
+  description: "Envoie un email à chaque changement d'état du switch"
+  trigger:
+    - platform: state
+      entity_id: switch.bureau_arnaud
+      from: "off"
+      to: "on"
+      id: allumage
+    - platform: state
+      entity_id: switch.bureau_arnaud
+      from: "on"
+      to: "off"
+      id: coupure
+  action:
+    - service: notify.ha_email
+      data:
+        title: |
+          🖥️ Bureau Arnaud - {% if trigger.id == 'allumage' %}Switch allumé{% else %}Switch coupé{% endif %}
+        message: |
+          {% if trigger.id == 'allumage' %}
+          Le switch bureau a été allumé.
+          {% else %}
+          Le switch bureau a été coupé.
+          {% endif %}
+          
+          📅 Heure : {{ now().strftime('%d/%m/%Y à %H:%M:%S') }}
+          
+          📊 Contexte :
+          • Switch : {{ states('switch.bureau_arnaud') }}
+          • Puissance : {{ states('sensor.bureau_arnaud_power') }} W
+          • Mode planning : {% if is_state('input_boolean.mode_vacances', 'on') %}Vacances{% elif is_state('input_boolean.chauffage_manuel', 'on') %}Manuel{% elif is_state('input_boolean.mode_planning_teletravail', 'on') %}Télétravail{% elif is_state('input_boolean.mode_planning_vacances_maison', 'on') %}Vacances Maison{% elif is_state('input_boolean.mode_planning_weekend_prolonge', 'on') %}Weekend+{% else %}Planning Normal{% endif %}
+          • Jour : {{ ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'][now().weekday()] }}
+          • Jour férié : {{ 'Oui' if is_state('calendar.jours_feries_en_france', 'on') else 'Non' }}
+          
+          ⏱️ Temps de fonctionnement :
+          • Aujourd'hui : {{ states('sensor.bureau_arnaud_temps_on_aujourd_hui') | float(0) | round(2) }} h
+          • Cette semaine : {{ states('sensor.bureau_arnaud_temps_on_semaine') | float(0) | round(2) }} h
+          • Ce mois : {{ states('sensor.bureau_arnaud_temps_on_mois') | float(0) | round(2) }} h
+          
+          ⚡ Consommation :
+          • Aujourd'hui : {{ states('sensor.bureau_arnaud_conso_journaliere') | float(0) | round(3) }} kWh
+          • Cette semaine : {{ states('sensor.bureau_arnaud_conso_hebdomadaire') | float(0) | round(3) }} kWh
+          • Ce mois : {{ states('sensor.bureau_arnaud_conso_mensuelle') | float(0) | round(3) }} kWh
+# ============================================================
+
+# ============================================================
+
+# 15. BUREAU MAXENCE
+# ============================================================
+# ============================================================
+# BUREAU MAXENCE - AUTOMATIONS
+# ============================================================
+
+# ============================================================
+# TRACES (Historique allumage/extinction/coupure)
+# ============================================================
+
+# 1. Trace allumage (> 30W pendant 2 min)
+- id: bureau_maxence_trace_allumage
+  alias: "Bureau Maxence - Trace allumage"
+  description: "Enregistre l'heure d'allumage du bureau"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.bureau_maxence_power
+      above: 30
+      for:
+        minutes: 2
+  condition:
+    - condition: template
+      value_template: >
+        {% set last_changed = as_timestamp(states.input_datetime.bureau_maxence_last_on.last_changed) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set minutes_since = ((now_ts - last_changed) / 60) | int %}
+        {{ minutes_since > 15 }}
+  action:
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.bureau_maxence_last_on
+      data:
+        datetime: "{{ now() }}"
+
+# 2. Trace extinction (< 30W pendant 1 min)
+- id: bureau_maxence_trace_extinction
+  alias: "Bureau Maxence - Trace extinction"
+  description: "Enregistre l'heure d'extinction du bureau"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.bureau_maxence_power
+      below: 30
+      for:
+        minutes: 1
+  condition:
+    - condition: template
+      value_template: >
+        {% set last_changed = as_timestamp(states.input_datetime.bureau_maxence_last_off.last_changed) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set minutes_since = ((now_ts - last_changed) / 60) | int %}
+        {{ minutes_since > 15 }}
+  action:
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.bureau_maxence_last_off
+      data:
+        datetime: "{{ now() }}"
+
+# 3. Trace coupure switch
+- id: bureau_maxence_trace_coupure_switch
+  alias: "Bureau Maxence - Trace coupure switch"
+  description: "Enregistre l'heure de coupure du switch"
+  trigger:
+    - platform: state
+      entity_id: switch.bureau_maxence
+      to: "off"
+  action:
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.bureau_maxence_last_switch_off
+      data:
+        datetime: "{{ now() }}"
+
+# ============================================================
+# COUPURE AUTOMATIQUE
+# ============================================================
+
+# 4. Coupure automatique (30 min après extinction si heure limite dépassée)
+- id: bureau_maxence_coupure_automatique
+  alias: "Bureau Maxence - Coupure automatique"
+  description: "Coupe le bureau 30 min après extinction si heure limite dépassée"
+  trigger:
+    - platform: time_pattern
+      minutes: "/5"
+  condition:
+    # Condition 1 : Coupure auto activée
+    - condition: state
+      entity_id: input_boolean.bureau_maxence_auto_coupure
+      state: "on"
+    
+    # Condition 2 : Switch ON
+    - condition: state
+      entity_id: switch.bureau_maxence
+      state: "on"
+    
+    # Condition 3 : Pas mode vacances
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    
+    # Condition 4 : Bureau éteint (< 30W)
+    - condition: numeric_state
+      entity_id: sensor.bureau_maxence_power
+      below: 30
+    
+    # Condition 5 : Extinction depuis au moins 30 min
+    - condition: template
+      value_template: >
+        {% set last_off = as_timestamp(states('input_datetime.bureau_maxence_last_off')) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set minutes_since = ((now_ts - last_off) / 60) | int %}
+        {{ minutes_since >= 30 }}
+    
+    # Condition 6 : Heure limite dépassée (AVEC GESTION MINUIT)
+    - condition: template
+      value_template: >
+        {% set jour_semaine = now().weekday() %}
+        {% set est_ferie = is_state('calendar.jours_feries_en_france', 'on') %}
+        {% set est_weekend_coupure = (jour_semaine in [4, 5, 6]) or est_ferie %}
+        
+        {% if est_weekend_coupure %}
+          {% set heure_limite_str = states('input_datetime.bureau_maxence_heure_limite_weekend') %}
+        {% else %}
+          {% set heure_limite_str = states('input_datetime.bureau_maxence_heure_limite_semaine') %}
+        {% endif %}
+        
+        {% set heure_parts = heure_limite_str.split(':') %}
+        {% set heure_limite_minutes = heure_parts[0]|int * 60 + heure_parts[1]|int %}
+        {% set heure_actuelle = now().hour * 60 + now().minute %}
+        
+        {# Si on est après minuit (00:00-05:59), considérer qu'on est après la limite de la veille #}
+        {% if heure_actuelle < 360 %}
+          true
+        {% else %}
+          {{ heure_actuelle >= heure_limite_minutes }}
+        {% endif %}
+    
+    # Condition 7 : PAS DE RALLUMAGE RÉCENT (au moins 10 min)
+    - condition: template
+      value_template: >
+        {% set switch_last_changed = as_timestamp(states.switch.bureau_maxence.last_changed) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set minutes_since_change = ((now_ts - switch_last_changed) / 60) | int %}
+        {{ minutes_since_change > 10 }}
+    
+    # Condition 8 : PAS DANS PLAGE ACTIVE (Mode Normal semaine uniquement)
+    - condition: template
+      value_template: >
+        {% set now_hour = now().hour %}
+        {% set now_minute = now().minute %}
+        {% set heure_actuelle = now_hour * 60 + now_minute %}
+        {% set jour_semaine = now().weekday() %}
+        {% set est_ferie = is_state('calendar.jours_feries_en_france', 'on') %}
+        {% set est_weekend = (jour_semaine in [5, 6]) or est_ferie %}
+        
+        {% set mode_normal = is_state('input_boolean.chauffage_manuel', 'off') 
+                         and is_state('input_boolean.mode_vacances', 'off')
+                         and is_state('input_boolean.mode_planning_teletravail', 'off')
+                         and is_state('input_boolean.mode_planning_vacances_maison', 'off')
+                         and is_state('input_boolean.mode_planning_weekend_prolonge', 'off') %}
+        
+        {% if mode_normal and not est_weekend %}
+          {% if jour_semaine == 0 %}
+            {% set rallumage_str = states('input_datetime.planning_normal_lundi_soir_debut') %}
+          {% elif jour_semaine == 1 %}
+            {% set rallumage_str = states('input_datetime.planning_normal_mardi_soir_debut') %}
+          {% elif jour_semaine == 2 %}
+            {% set rallumage_str = states('input_datetime.planning_normal_mercredi_soir_debut') %}
+          {% elif jour_semaine == 3 %}
+            {% set rallumage_str = states('input_datetime.planning_normal_jeudi_soir_debut') %}
+          {% elif jour_semaine == 4 %}
+            {% set rallumage_str = states('input_datetime.planning_normal_vendredi_soir_debut') %}
+          {% else %}
+            {% set rallumage_str = '00:00:00' %}
+          {% endif %}
+          
+          {% set rallumage_parts = rallumage_str.split(':') %}
+          {% set rallumage_minutes = rallumage_parts[0]|int * 60 + rallumage_parts[1]|int %}
+          
+          {% set limite_str = states('input_datetime.bureau_maxence_heure_limite_semaine') %}
+          {% set limite_parts = limite_str.split(':') %}
+          {% set limite_minutes = limite_parts[0]|int * 60 + limite_parts[1]|int %}
+          
+          {{ heure_actuelle < rallumage_minutes or heure_actuelle >= limite_minutes }}
+        {% else %}
+          true
+        {% endif %}
+    
+    # Condition 9 : EXTINCTION RÉCENTE (< 3 heures)
+    - condition: template
+      value_template: >
+        {% set last_off = as_timestamp(states('input_datetime.bureau_maxence_last_off')) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set heures_depuis = ((now_ts - last_off) / 3600) | float %}
+        {{ heures_depuis < 3 }}
+  
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id: switch.bureau_maxence
+    
+    - delay:
+        seconds: 2
+  
+  mode: single
+
+# ============================================================
+# BUREAU MAXENCE - EXTINCTION AUTOMATIQUE FORCÉE (HEURE CONFIGURÉE)
+# ============================================================
+- id: bureau_maxence_extinction_auto_forcee
+  alias: "Bureau Maxence - Extinction automatique forcée"
+  description: "Coupe le bureau à l'heure configurée, même si PC allumé"
+  trigger:
+    - platform: time_pattern
+      minutes: "*"
+  condition:
+    # Condition 1 : Extinction automatique forcée activée
+    - condition: state
+      entity_id: input_boolean.bureau_maxence_extinction_auto_forcee
+      state: "on"
+    
+    # Condition 2 : Coupure auto activée
+    - condition: state
+      entity_id: input_boolean.bureau_maxence_auto_coupure
+      state: "on"
+    
+    # Condition 3 : Switch ON
+    - condition: state
+      entity_id: switch.bureau_maxence
+      state: "on"
+    
+    # Condition 4 : Pas en mode vacances (absence)
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    
+    # Condition 5 : Heure exacte d'extinction
+    - condition: template
+      value_template: >
+        {% set jour_semaine = now().weekday() %}
+        {% set est_ferie = is_state('calendar.jours_feries_en_france', 'on') %}
+        {% set mode_vacances_maison = is_state('input_boolean.mode_planning_vacances_maison', 'on') %}
+        {% set mode_weekend_prolonge = is_state('input_boolean.mode_planning_weekend_prolonge', 'on') %}
+        
+        {% set est_weekend_etendu = (jour_semaine in [4, 5]) or est_ferie or mode_vacances_maison or mode_weekend_prolonge %}
+        
+        {% if est_weekend_etendu %}
+          {% set heure_extinction = states('input_datetime.bureau_maxence_extinction_forcee_weekend') %}
+        {% else %}
+          {% set heure_extinction = states('input_datetime.bureau_maxence_extinction_forcee_ecole') %}
+        {% endif %}
+        
+        {% set now_time = now().strftime('%H:%M:%S') %}
+        {{ now_time == heure_extinction }}
+  
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id: switch.bureau_maxence
+    
+    - delay:
+        seconds: 2
+  
+  mode: single
+# ============================================================
+
+# ============================================================
+# BUREAU MAXENCE - EXTINCTION MANUELLE IMMÉDIATE
+# ============================================================
+- id: bureau_maxence_extinction_manuelle_immediate
+  alias: "Bureau Maxence - Extinction manuelle immédiate"
+  description: "Coupe le bureau immédiatement quand le toggle est activé"
+  trigger:
+    - platform: state
+      entity_id: input_boolean.bureau_maxence_extinction_manuelle
+      to: "on"
+  condition:
+    # Switch doit être ON
+    - condition: state
+      entity_id: switch.bureau_maxence
+      state: "on"
+  action:
+    # Coupe le switch
+    - service: switch.turn_off
+      target:
+        entity_id: switch.bureau_maxence
+    
+    # Attend 2 secondes
+    - delay:
+        seconds: 2
+    
+    # Remet le toggle à OFF automatiquement
+    - service: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.bureau_maxence_extinction_manuelle
+  
+  mode: single
+# ============================================================
+
+# ============================================================
+# RALLUMAGES AUTOMATIQUES
+# ============================================================
+
+# 5. Rallumage weekend + jours fériés (Mode Normal)
+- id: bureau_maxence_rallumage_weekend_normal
+  alias: "Bureau Maxence - Rallumage weekend (Mode Normal)"
+  description: "Rallume le bureau sam-dim + jours fériés en mode Normal"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.bureau_maxence_rallumage_matin') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: or
+      conditions:
+        - condition: template
+          value_template: "{{ now().weekday() in [5, 6] }}"
+        - condition: state
+          entity_id: calendar.jours_feries_en_france
+          state: "on"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_maxence
+
+# 6. Rallumage matinal (autres modes)
+- id: bureau_maxence_rallumage_autres_modes
+  alias: "Bureau Maxence - Rallumage matinal (Autres modes)"
+  description: "Rallume le bureau tous les jours en Télétravail/Vacances Maison/Weekend+"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.bureau_maxence_rallumage_matin') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: input_boolean.mode_planning_teletravail
+          state: "on"
+        - condition: state
+          entity_id: input_boolean.mode_planning_vacances_maison
+          state: "on"
+        - condition: state
+          entity_id: input_boolean.mode_planning_weekend_prolonge
+          state: "on"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_maxence
+
+# 7-11. Rallumages soir lun-ven (Mode Normal)
+- id: bureau_maxence_rallumage_lundi_soir
+  alias: "Bureau Maxence - Rallumage lundi soir"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.planning_normal_lundi_soir_debut') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: template
+      value_template: "{{ now().weekday() == 0 }}"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_maxence
+
+- id: bureau_maxence_rallumage_mardi_soir
+  alias: "Bureau Maxence - Rallumage mardi soir"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.planning_normal_mardi_soir_debut') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: template
+      value_template: "{{ now().weekday() == 1 }}"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_maxence
+
+- id: bureau_maxence_rallumage_mercredi_soir
+  alias: "Bureau Maxence - Rallumage mercredi soir"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.planning_normal_mercredi_soir_debut') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: template
+      value_template: "{{ now().weekday() == 2 }}"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_maxence
+
+- id: bureau_maxence_rallumage_jeudi_soir
+  alias: "Bureau Maxence - Rallumage jeudi soir"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.planning_normal_jeudi_soir_debut') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: template
+      value_template: "{{ now().weekday() == 3 }}"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_maxence
+
+- id: bureau_maxence_rallumage_vendredi_soir
+  alias: "Bureau Maxence - Rallumage vendredi soir"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.planning_normal_vendredi_soir_debut') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: template
+      value_template: "{{ now().weekday() == 4 }}"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_maxence
+
+# 12. Rallumage changement mode
+- id: bureau_maxence_rallumage_changement_mode
+  alias: "Bureau Maxence - Rallumage changement mode actif"
+  description: "Rallume le bureau immédiatement lors du passage en mode Télétravail/Vacances Maison/Weekend+"
+  trigger:
+    - platform: state
+      entity_id: input_boolean.mode_planning_teletravail
+      from: "off"
+      to: "on"
+      id: teletravail
+    - platform: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      from: "off"
+      to: "on"
+      id: vacances_maison
+    - platform: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      from: "off"
+      to: "on"
+      id: weekend_prolonge
+  condition:
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: switch.bureau_maxence
+      state: "off"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_maxence
+
+# ============================================================
+# NOTIFICATIONS EMAIL
+# ============================================================
+
+# 13. Notification changement switch
+- id: bureau_maxence_notification_switch
+  alias: "Bureau Maxence - Notification changement switch"
+  description: "Envoie un email à chaque changement d'état du switch"
+  trigger:
+    - platform: state
+      entity_id: switch.bureau_maxence
+      from: "off"
+      to: "on"
+      id: allumage
+    - platform: state
+      entity_id: switch.bureau_maxence
+      from: "on"
+      to: "off"
+      id: coupure
+  action:
+    - service: notify.ha_email
+      data:
+        title: |
+          🖥️ Bureau Maxence - {% if trigger.id == 'allumage' %}Switch allumé{% else %}Switch coupé{% endif %}
+        message: |
+          {% if trigger.id == 'allumage' %}
+          Le switch bureau Maxence a été allumé.
+          {% else %}
+          Le switch bureau Maxence a été coupé.
+          {% endif %}
+          
+          📅 Heure : {{ now().strftime('%d/%m/%Y à %H:%M:%S') }}
+          
+          📊 Contexte :
+          • Switch : {{ states('switch.bureau_maxence') }}
+          • Puissance : {{ states('sensor.bureau_maxence_power') }} W
+          • Mode planning : {% if is_state('input_boolean.mode_vacances', 'on') %}Vacances{% elif is_state('input_boolean.chauffage_manuel', 'on') %}Manuel{% elif is_state('input_boolean.mode_planning_teletravail', 'on') %}Télétravail{% elif is_state('input_boolean.mode_planning_vacances_maison', 'on') %}Vacances Maison{% elif is_state('input_boolean.mode_planning_weekend_prolonge', 'on') %}Weekend+{% else %}Planning Normal{% endif %}
+          • Jour : {{ ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'][now().weekday()] }}
+          • Jour férié : {{ 'Oui' if is_state('calendar.jours_feries_en_france', 'on') else 'Non' }}
+          
+          ⏱️ Temps de fonctionnement :
+          • Aujourd'hui : {{ states('sensor.bureau_maxence_temps_on_aujourd_hui') | float(0) | round(2) }} h
+          • Cette semaine : {{ states('sensor.bureau_maxence_temps_on_semaine') | float(0) | round(2) }} h
+          • Ce mois : {{ states('sensor.bureau_maxence_temps_on_mois') | float(0) | round(2) }} h
+          
+          ⚡ Consommation :
+          • Aujourd'hui : {{ states('sensor.bureau_maxence_conso_journaliere') | float(0) | round(3) }} kWh
+          • Cette semaine : {{ states('sensor.bureau_maxence_conso_hebdomadaire') | float(0) | round(3) }} kWh
+          • Ce mois : {{ states('sensor.bureau_maxence_conso_mensuelle') | float(0) | round(3) }} kWh
+# ============================================================
+
+# ============================================================
+
+# 16. BUREAU JULIE
+# ============================================================
+# ============================================================
+# BUREAU JULIE - AUTOMATIONS
+# ============================================================
+
+# ============================================================
+# TRACES (Historique allumage/extinction/coupure)
+# ============================================================
+
+# 1. Trace allumage (> 30W pendant 2 min)
+- id: bureau_julie_trace_allumage
+  alias: "Bureau Julie - Trace allumage"
+  description: "Enregistre l'heure d'allumage du bureau"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.bureau_julie_power
+      above: 30
+      for:
+        minutes: 2
+  condition:
+    - condition: template
+      value_template: >
+        {% set last_changed = as_timestamp(states.input_datetime.bureau_julie_last_on.last_changed) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set minutes_since = ((now_ts - last_changed) / 60) | int %}
+        {{ minutes_since > 15 }}
+  action:
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.bureau_julie_last_on
+      data:
+        datetime: "{{ now() }}"
+
+# 2. Trace extinction (< 30W pendant 1 min)
+- id: bureau_julie_trace_extinction
+  alias: "Bureau Julie - Trace extinction"
+  description: "Enregistre l'heure d'extinction du bureau"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.bureau_julie_power
+      below: 30
+      for:
+        minutes: 1
+  condition:
+    - condition: template
+      value_template: >
+        {% set last_changed = as_timestamp(states.input_datetime.bureau_julie_last_off.last_changed) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set minutes_since = ((now_ts - last_changed) / 60) | int %}
+        {{ minutes_since > 15 }}
+  action:
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.bureau_julie_last_off
+      data:
+        datetime: "{{ now() }}"
+
+# 3. Trace coupure switch
+- id: bureau_julie_trace_coupure_switch
+  alias: "Bureau Julie - Trace coupure switch"
+  description: "Enregistre l'heure de coupure du switch"
+  trigger:
+    - platform: state
+      entity_id: switch.bureau_julie
+      to: "off"
+  action:
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.bureau_julie_last_switch_off
+      data:
+        datetime: "{{ now() }}"
+
+# ============================================================
+# COUPURE AUTOMATIQUE
+# ============================================================
+
+# 4. Coupure automatique (30 min après extinction si heure limite dépassée)
+- id: bureau_julie_coupure_automatique
+  alias: "Bureau Julie - Coupure automatique"
+  description: "Coupe le bureau 30 min après extinction si heure limite dépassée"
+  trigger:
+    - platform: time_pattern
+      minutes: "/5"
+  condition:
+    # Condition 1 : Coupure auto activée
+    - condition: state
+      entity_id: input_boolean.bureau_julie_auto_coupure
+      state: "on"
+    
+    # Condition 2 : Switch ON
+    - condition: state
+      entity_id: switch.bureau_julie
+      state: "on"
+    
+    # Condition 3 : Pas mode vacances
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    
+    # Condition 4 : Bureau éteint (< 30W)
+    - condition: numeric_state
+      entity_id: sensor.bureau_julie_power
+      below: 30
+    
+    # Condition 5 : Extinction depuis au moins 30 min
+    - condition: template
+      value_template: >
+        {% set last_off = as_timestamp(states('input_datetime.bureau_julie_last_off')) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set minutes_since = ((now_ts - last_off) / 60) | int %}
+        {{ minutes_since >= 30 }}
+    
+    # Condition 6 : Heure limite dépassée (AVEC GESTION MINUIT)
+    - condition: template
+      value_template: >
+        {% set jour_semaine = now().weekday() %}
+        {% set est_ferie = is_state('calendar.jours_feries_en_france', 'on') %}
+        {% set est_weekend_coupure = (jour_semaine in [4, 5, 6]) or est_ferie %}
+        
+        {% if est_weekend_coupure %}
+          {% set heure_limite_str = states('input_datetime.bureau_julie_heure_limite_weekend') %}
+        {% else %}
+          {% set heure_limite_str = states('input_datetime.bureau_julie_heure_limite_semaine') %}
+        {% endif %}
+        
+        {% set heure_parts = heure_limite_str.split(':') %}
+        {% set heure_limite_minutes = heure_parts[0]|int * 60 + heure_parts[1]|int %}
+        {% set heure_actuelle = now().hour * 60 + now().minute %}
+        
+        {# Si on est après minuit (00:00-05:59), considérer qu'on est après la limite de la veille #}
+        {% if heure_actuelle < 360 %}
+          true
+        {% else %}
+          {{ heure_actuelle >= heure_limite_minutes }}
+        {% endif %}
+    
+    # Condition 7 : PAS DE RALLUMAGE RÉCENT (au moins 10 min)
+    - condition: template
+      value_template: >
+        {% set switch_last_changed = as_timestamp(states.switch.bureau_julie.last_changed) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set minutes_since_change = ((now_ts - switch_last_changed) / 60) | int %}
+        {{ minutes_since_change > 10 }}
+    
+    # Condition 8 : PAS DANS PLAGE ACTIVE (Mode Normal semaine uniquement)
+    - condition: template
+      value_template: >
+        {% set now_hour = now().hour %}
+        {% set now_minute = now().minute %}
+        {% set heure_actuelle = now_hour * 60 + now_minute %}
+        {% set jour_semaine = now().weekday() %}
+        {% set est_ferie = is_state('calendar.jours_feries_en_france', 'on') %}
+        {% set est_weekend = (jour_semaine in [5, 6]) or est_ferie %}
+        
+        {% set mode_normal = is_state('input_boolean.chauffage_manuel', 'off') 
+                         and is_state('input_boolean.mode_vacances', 'off')
+                         and is_state('input_boolean.mode_planning_teletravail', 'off')
+                         and is_state('input_boolean.mode_planning_vacances_maison', 'off')
+                         and is_state('input_boolean.mode_planning_weekend_prolonge', 'off') %}
+        
+        {% if mode_normal and not est_weekend %}
+          {% if jour_semaine == 0 %}
+            {% set rallumage_str = states('input_datetime.planning_normal_lundi_soir_debut') %}
+          {% elif jour_semaine == 1 %}
+            {% set rallumage_str = states('input_datetime.planning_normal_mardi_soir_debut') %}
+          {% elif jour_semaine == 2 %}
+            {% set rallumage_str = states('input_datetime.planning_normal_mercredi_soir_debut') %}
+          {% elif jour_semaine == 3 %}
+            {% set rallumage_str = states('input_datetime.planning_normal_jeudi_soir_debut') %}
+          {% elif jour_semaine == 4 %}
+            {% set rallumage_str = states('input_datetime.planning_normal_vendredi_soir_debut') %}
+          {% else %}
+            {% set rallumage_str = '00:00:00' %}
+          {% endif %}
+          
+          {% set rallumage_parts = rallumage_str.split(':') %}
+          {% set rallumage_minutes = rallumage_parts[0]|int * 60 + rallumage_parts[1]|int %}
+          
+          {% set limite_str = states('input_datetime.bureau_julie_heure_limite_semaine') %}
+          {% set limite_parts = limite_str.split(':') %}
+          {% set limite_minutes = limite_parts[0]|int * 60 + limite_parts[1]|int %}
+          
+          {{ heure_actuelle < rallumage_minutes or heure_actuelle >= limite_minutes }}
+        {% else %}
+          true
+        {% endif %}
+    
+    # Condition 9 : EXTINCTION RÉCENTE (< 3 heures)
+    - condition: template
+      value_template: >
+        {% set last_off = as_timestamp(states('input_datetime.bureau_julie_last_off')) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set heures_depuis = ((now_ts - last_off) / 3600) | float %}
+        {{ heures_depuis < 3 }}
+  
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id: switch.bureau_julie
+    
+    - delay:
+        seconds: 2
+  
+  mode: single
+
+# ============================================================
+# RALLUMAGES AUTOMATIQUES
+# ============================================================
+
+# 5. Rallumage weekend + jours fériés (Mode Normal)
+- id: bureau_julie_rallumage_weekend_normal
+  alias: "Bureau Julie - Rallumage weekend (Mode Normal)"
+  description: "Rallume le bureau sam-dim + jours fériés en mode Normal"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.bureau_julie_rallumage_matin') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: or
+      conditions:
+        - condition: template
+          value_template: "{{ now().weekday() in [5, 6] }}"
+        - condition: state
+          entity_id: calendar.jours_feries_en_france
+          state: "on"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_julie
+
+# 6. Rallumage matinal (autres modes)
+- id: bureau_julie_rallumage_autres_modes
+  alias: "Bureau Julie - Rallumage matinal (Autres modes)"
+  description: "Rallume le bureau tous les jours en Télétravail/Vacances Maison/Weekend+"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.bureau_julie_rallumage_matin') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: input_boolean.mode_planning_teletravail
+          state: "on"
+        - condition: state
+          entity_id: input_boolean.mode_planning_vacances_maison
+          state: "on"
+        - condition: state
+          entity_id: input_boolean.mode_planning_weekend_prolonge
+          state: "on"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_julie
+
+# 7-11. Rallumages soir lun-ven (Mode Normal)
+- id: bureau_julie_rallumage_lundi_soir
+  alias: "Bureau Julie - Rallumage lundi soir"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.planning_normal_lundi_soir_debut') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: template
+      value_template: "{{ now().weekday() == 0 }}"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_julie
+
+- id: bureau_julie_rallumage_mardi_soir
+  alias: "Bureau Julie - Rallumage mardi soir"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.planning_normal_mardi_soir_debut') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: template
+      value_template: "{{ now().weekday() == 1 }}"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_julie
+
+- id: bureau_julie_rallumage_mercredi_soir
+  alias: "Bureau Julie - Rallumage mercredi soir"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.planning_normal_mercredi_soir_debut') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: template
+      value_template: "{{ now().weekday() == 2 }}"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_julie
+
+- id: bureau_julie_rallumage_jeudi_soir
+  alias: "Bureau Julie - Rallumage jeudi soir"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.planning_normal_jeudi_soir_debut') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: template
+      value_template: "{{ now().weekday() == 3 }}"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_julie
+
+- id: bureau_julie_rallumage_vendredi_soir
+  alias: "Bureau Julie - Rallumage vendredi soir"
+  trigger:
+    - platform: template
+      value_template: "{{ states('input_datetime.planning_normal_vendredi_soir_debut') == now().strftime('%H:%M:%S') }}"
+  condition:
+    - condition: state
+      entity_id: input_boolean.chauffage_manuel
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    - condition: template
+      value_template: "{{ now().weekday() == 4 }}"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_julie
+
+# 12. Rallumage changement mode
+- id: bureau_julie_rallumage_changement_mode
+  alias: "Bureau Julie - Rallumage changement mode actif"
+  description: "Rallume le bureau immédiatement lors du passage en mode Télétravail/Vacances Maison/Weekend+"
+  trigger:
+    - platform: state
+      entity_id: input_boolean.mode_planning_teletravail
+      from: "off"
+      to: "on"
+      id: teletravail
+    - platform: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      from: "off"
+      to: "on"
+      id: vacances_maison
+    - platform: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      from: "off"
+      to: "on"
+      id: weekend_prolonge
+  condition:
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    - condition: state
+      entity_id: switch.bureau_julie
+      state: "off"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.bureau_julie
+
+# ============================================================
+# NOTIFICATIONS EMAIL
+# ============================================================
+
+# 13. Notification changement switch
+- id: bureau_julie_notification_switch
+  alias: "Bureau Julie - Notification changement switch"
+  description: "Envoie un email à chaque changement d'état du switch"
+  trigger:
+    - platform: state
+      entity_id: switch.bureau_julie
+      from: "off"
+      to: "on"
+      id: allumage
+    - platform: state
+      entity_id: switch.bureau_julie
+      from: "on"
+      to: "off"
+      id: coupure
+  action:
+    - service: notify.ha_email
+      data:
+        title: |
+          🖥️ Bureau Julie - {% if trigger.id == 'allumage' %}Switch allumé{% else %}Switch coupé{% endif %}
+        message: |
+          {% if trigger.id == 'allumage' %}
+          Le switch bureau Julie a été allumé.
+          {% else %}
+          Le switch bureau Julie a été coupé.
+          {% endif %}
+          
+          📅 Heure : {{ now().strftime('%d/%m/%Y à %H:%M:%S') }}
+          
+          📊 Contexte :
+          • Switch : {{ states('switch.bureau_julie') }}
+          • Puissance : {{ states('sensor.bureau_julie_power') }} W
+          • Mode planning : {% if is_state('input_boolean.mode_vacances', 'on') %}Vacances{% elif is_state('input_boolean.chauffage_manuel', 'on') %}Manuel{% elif is_state('input_boolean.mode_planning_teletravail', 'on') %}Télétravail{% elif is_state('input_boolean.mode_planning_vacances_maison', 'on') %}Vacances Maison{% elif is_state('input_boolean.mode_planning_weekend_prolonge', 'on') %}Weekend+{% else %}Planning Normal{% endif %}
+          • Jour : {{ ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'][now().weekday()] }}
+          • Jour férié : {{ 'Oui' if is_state('calendar.jours_feries_en_france', 'on') else 'Non' }}
+          
+          ⏱️ Temps de fonctionnement :
+          • Aujourd'hui : {{ states('sensor.bureau_julie_temps_on_aujourd_hui') | float(0) | round(2) }} h
+          • Cette semaine : {{ states('sensor.bureau_julie_temps_on_semaine') | float(0) | round(2) }} h
+          • Ce mois : {{ states('sensor.bureau_julie_temps_on_mois') | float(0) | round(2) }} h
+          
+          ⚡ Consommation :
+          • Aujourd'hui : {{ states('sensor.bureau_julie_conso_journaliere') | float(0) | round(3) }} kWh
+          • Cette semaine : {{ states('sensor.bureau_julie_conso_hebdomadaire') | float(0) | round(3) }} kWh
+          • Ce mois : {{ states('sensor.bureau_julie_conso_mensuelle') | float(0) | round(3) }} kWh
+# ============================================================
+
+
+# ============================================
+# NOTES ET DOCUMENTATION
+# ============================================
+#
+# AUTOMATISATIONS ACTIVES : 7
+# - 1 x Calcul de consigne (priorités multiples)
+# - 2 x Régulation chauffage (allumage/extinction)
+# - 2 x Mode vacances (activation/désactivation)
+# - 2 x Boost (activation/désactivation)
+# - 1 x Sync état (commentée, pour production)
+
+
+#         {% set temp = states('sensor.temperature_rdc_corrigee') | float(None) %} #Sensor Zigbee
+# HYSTÉRÉSIS : ±0.5°C
+# - Allumage si temp < consigne - 0.3°C
+# - Extinction si temp > consigne + 0.5°C
+# - Zone morte de 0,7°C pour éviter cycles courts
+#
+# DÉLAIS DE SÉCURITÉ : 3 minutes
+# - Évite les déclenchements intempestifs
+# - Protection des équipements
+#
+# ============================================
+# ============================================================
+# SOMMAIRE COMPLET DES AUTOMATIONS DÉCLARÉES
+# ============================================================
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 0. SYSTÈME (1 automation)                                   │
+# ├─────────────────────────────────────────────────────────────┤
+# │   0.1  Reboot_HA                    Reboot quotidien 05:04  │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 1. CHAUFFAGE - INITIALISATION & CALCUL (2)                  │
+# ├─────────────────────────────────────────────────────────────┤
+# │   1.1  Phase 1 - Init Horaires      1 seul démarrage        │
+# │   1.2  Chauffage - Calcul Consigne  Priorités 1→8           │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 2. CHAUFFAGE - RÉGULATION (2)                               │
+# ├─────────────────────────────────────────────────────────────┤
+# │   2.1  Chauffage - Allumer          Seuil consigne -0.3°C   │
+# │   2.2  Chauffage - Éteindre         Seuil consigne +0.5°C   │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 3. MODE VACANCES ABSENCE - PRIORITÉ 1 (3)                   │
+# ├─────────────────────────────────────────────────────────────┤
+# │   3.1  Planning - Vacances Auto     Activation/désact. auto │
+# │   3.2  Vacances - Appliquer Temp    Applique temp_vacances  │
+# │   3.4  Vacances - Retour Planning   Retour au planning auto │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 4. BOOST TEMPÉRATURE (5)                                    │
+# ├─────────────────────────────────────────────────────────────┤
+# │   4.1  Boost - Activation           Calcul heure de fin     │
+# │   4.2  Boost - Désactivation Auto   À expiration boost_fin  │
+# │   4.3  Chauffage - Retour Auto      Désact. manuel au chgt  │
+# │   4.4  Manuel - Bloquer Vacances    Bloque si mode vacances │
+# │   4.5  Vacances - Bloquer Boost     Bloque boost si absent  │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 5. SYNCHRONISATION ÉTAT CHAUFFAGE (1)                       │
+# ├─────────────────────────────────────────────────────────────┤
+# │   5.1  Chauffage - Sync État Réel   Sync contacteur → bool  │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 6. MODE ÉTÉ (3)                                             │
+# ├─────────────────────────────────────────────────────────────┤
+# │   6.1  Été - Bloquer Activation     Bloque si mode été ON   │
+# │   6.2  Été - Notification Activ.    Email mode été activé   │
+# │   6.3  Été - Notification Désact.   Email mode été désactivé│
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 7. MODES DE PLANNING AVEC DATES (5)                         │
+# ├─────────────────────────────────────────────────────────────┤
+# │   7.1  Planning - Télétravail Auto  Priorité 4              │
+# │   7.2  Planning - Vacances Maison   Priorité 5              │
+# │   7.3  Planning - Weekend Prolongé  Priorité 6              │
+# │   7.4  Planning - Bloquer Vacances  Désact. si absent       │
+# │   7.5  Planning - Exclusion Mutuel  1 seul mode à la fois   │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 8. PROTECTION & NETTOYAGE (4)                               │
+# ├─────────────────────────────────────────────────────────────┤
+# │   8.1  Protection - Vérif. dates    Désact. si hors plage   │
+# │   8.2  Protection - Anti-boucle     Délai 30s notif. chauf. │
+# │   9.1  Nettoyage Périodes           Désact. périodes orphel.│
+# │   9.2  Sync État Mode Normal        Mode normal si tout OFF  │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 9. SYNC VACANCES SCOLAIRES (3)                              │
+# ├─────────────────────────────────────────────────────────────┤
+# │   9.3  Auto sync vacances maison    Depuis calendrier Zone B│
+# │   9.4  Clear après période (binaire)Synchro prochaines vac. │
+# │   9.5  Clear après période (23:00)  Efface dates expirées   │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 10. HORAIRES DYNAMIQUES PHASE 2 (7)                         │
+# ├─────────────────────────────────────────────────────────────┤
+# │   10.1 Normal Matin                 Lun-Ven (partagé)       │
+# │   10.2 Normal Soir Lun-Mar-Jeu-Ven  4 jours distincts       │
+# │   10.3 Normal Mercredi Soir         Horaire spécial mercredi│
+# │   10.4 Normal Weekend               Sam-Dim                 │
+# │   10.5 Télétravail                  7j/7 horaires par jour  │
+# │   10.6 Vacances Maison              7j/7 horaire unique      │
+# │   10.7 Weekend Prolongé             7j/7 horaire unique      │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 11. BALLON EAU CHAUDE (5)                                   │
+# ├─────────────────────────────────────────────────────────────┤
+# │   11.1 MAJ heures selon soleil      Lever/coucher + marges  │
+# │   11.2 Démarrage sur surplus        Seuil démarrage (W)     │
+# │   11.3 Arrêt surplus insuffisant    Seuil arrêt (W) 5min    │
+# │   11.4 Arrêt coucher du soleil      Sunset → OFF            │
+# │   11.5 Synchronisation statut       Contacteur → input_sel  │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 12. FRIGO AMÉRICAIN - 3 PALIERS (7)                         │
+# ├─────────────────────────────────────────────────────────────┤
+# │   12.1 Activation boost temp (v1)   Palier 1 - 1ère version │
+# │   12.2 Activation boost temp (v2)   Palier 1 - version act. │
+# │   12.3 Activation Power Boost       Palier 3 (ballon ON)    │
+# │   12.4 Désactivation Power Boost    Surplus < seuil arrêt   │
+# │   12.5 Désact. PB si ballon arrêté  Cascade arrêt           │
+# │   12.6 Désactivation complète       Retour temp. normales   │
+# │   12.7 Arrêt boost coucher soleil   Sunset → tout normal    │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 13. TV SALON (16)                                           │
+# ├─────────────────────────────────────────────────────────────┤
+# │ Traces (3)                                                  │
+# │   13.1 Trace allumage TV            > 50W / 10s             │
+# │   13.2 Trace extinction TV          < 10W / 10s             │
+# │   13.3 Trace coupure disjoncteur    State OFF → ON          │
+# │ Coupures automatiques (2)                                   │
+# │   13.4 Coupure auto (limite/refroid)Toutes les 5 min        │
+# │   13.5 Coupure départ Vacances      Immédiate + email       │
+# │ Rallumages (9)                                              │
+# │   13.6 Rallumage matinal            Heure configurée        │
+# │   13.7 Rallumage soir lundi         Heure planning normal   │
+# │   13.8 Rallumage soir mardi         "                       │
+# │   13.9 Rallumage soir mercredi      "                       │
+# │   13.10 Rallumage soir jeudi        "                       │
+# │   13.11 Rallumage soir vendredi     "                       │
+# │   13.12 Rallumage chgmt mode        Vers TT/VacMaison/WE+  │
+# │   13.13 Coupure chgmt Planning Nrml Attente refroid. OLED   │
+# │   13.14 Vérif. quotidienne Vacances 02:00 si disjonct. ON   │
+# │   13.15 Rallumage retour Vacances   Mode vacances → OFF      │
+# │ Notifications (1)                                           │
+# │   13.16 Notification disjoncteur    Email ON/OFF avec stats  │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 14. BUREAU ARNAUD (14)                                      │
+# ├─────────────────────────────────────────────────────────────┤
+# │ Traces (3)    14.1 allumage  14.2 extinction  14.3 switch   │
+# │ Coupures (2)  14.4 auto (30min après ext.)  14.13 vacances  │
+# │ Rallumages (8)                                              │
+# │   14.5 weekend Mode Normal   14.6 autres modes (7j)        │
+# │   14.7→14.11 soir lun→ven (Mode Normal)                    │
+# │   14.12 changement mode TT/VacMaison/WE+                   │
+# │ Notifications (1)   14.14 email ON/OFF avec stats           │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 15. BUREAU MAXENCE (15)                                     │
+# ├─────────────────────────────────────────────────────────────┤
+# │ Traces (3)    15.1 allumage  15.2 extinction  15.3 switch   │
+# │ Coupures (3)  15.4 auto (30min)  15.5 forcée  15.6 manuelle│
+# │ Rallumages (8)                                              │
+# │   15.7 weekend Mode Normal   15.8 autres modes (7j)        │
+# │   15.9→15.13 soir lun→ven (Mode Normal)                    │
+# │   15.14 changement mode TT/VacMaison/WE+                   │
+# │ Notifications (1)   15.15 email ON/OFF avec stats           │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 16. BUREAU JULIE (13)                                       │
+# ├─────────────────────────────────────────────────────────────┤
+# │ Traces (3)    16.1 allumage  16.2 extinction  16.3 switch   │
+# │ Coupures (1)  16.4 auto (30min après ext.)                  │
+# │ Rallumages (8)                                              │
+# │   16.5 weekend Mode Normal   16.6 autres modes (7j)        │
+# │   16.7→16.11 soir lun→ven (Mode Normal)                    │
+# │   16.12 changement mode TT/VacMaison/WE+                   │
+# │ Notifications (1)   16.13 email ON/OFF avec stats           │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 17. PLANNING TÉLÉTRAVAIL - SYNC CALENDRIER (3)              │
+# ├─────────────────────────────────────────────────────────────┤
+# │   17.1 Vérification périodique      Toutes les heures       │
+# │   17.2 Reset lundi matin            00:15 + sync auto       │
+# │   17.3 Détection modif. manuelle    Désact. auto-sync       │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 18. ROBOT DREAME X50 (2)                                    │
+# ├─────────────────────────────────────────────────────────────┤
+# │   18.1 Lancer robot (alarme + hors rouge)  15min après arm  │
+# │   18.2 Réinitialiser compteur              Minuit quotidien │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 19. UPS / NAS (1)                                           │
+# ├─────────────────────────────────────────────────────────────┤
+# │   19.1 Extinction NAS sur batterie  Seuil autonomie (min)   │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ RÉCAPITULATIF GLOBAL                                        │
+# ├─────────────────────────────────────────────────────────────┤
+# │  0. Système              :   1 automation                   │
+# │  1. Chauffage Init/Calcul:   2 automations                  │
+# │  2. Chauffage Régulation :   2 automations                  │
+# │  3. Mode Vacances        :   3 automations                  │
+# │  4. Boost Température    :   5 automations                  │
+# │  5. Sync État            :   1 automation                   │
+# │  6. Mode Été             :   3 automations                  │
+# │  7. Modes Planning       :   5 automations                  │
+# │  8. Protection/Nettoyage :   4 automations                  │
+# │  9. Sync Vacances Scol.  :   3 automations                  │
+# │ 10. Horaires Phase 2     :   7 automations                  │
+# │ 11. Ballon Eau Chaude    :   5 automations                  │
+# │ 12. Frigo 3 Paliers      :   7 automations                  │
+# │ 13. TV Salon             :  16 automations                  │
+# │ 14. Bureau Arnaud        :  14 automations                  │
+# │ 15. Bureau Maxence       :  15 automations                  │
+# │ 16. Bureau Julie         :  13 automations                  │
+# │ 17. Planning TT Calendr. :   3 automations                  │
+# │ 18. Robot Dreame X50     :   2 automations                  │
+# │ 19. UPS / NAS            :   1 automation                   │
+# │                                                             │
+# │  TOTAL                   : 112 automations                  │
+# └─────────────────────────────────────────────────────────────┘
