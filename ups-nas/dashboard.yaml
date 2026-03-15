@@ -1,0 +1,480 @@
+views:
+  - title: Onduleur
+    path: onduleur
+    icon: mdi:lightning-bolt
+    cards:
+      - type: custom:mushroom-title-card
+        title: ⚡ Onduleur APC SMC1000I
+        subtitle: SMC1000I-2UC • NUT via USB
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: '{{ states(''sensor.smc1000i_autonomie_minutes'') }} min'
+            secondary: Autonomie restante
+            icon: mdi:timer-outline
+            icon_color: >
+              {% set s = states('sensor.apcups_autonomie_de_la_batterie') | int
+              %} {% if s >= 600 %}green {% elif s >= 300 %}orange {% else
+              %}red{% endif %}
+            tap_action:
+              action: none
+          - type: custom:mushroom-template-card
+            primary: '{{ states(''sensor.smc1000i_2uc_charge_de_la_batterie'') | int }} %'
+            secondary: Charge batterie
+            icon: >
+              {% set pct = states('sensor.smc1000i_2uc_charge_de_la_batterie') |
+              int %} {% if pct >= 80 %}mdi:battery-high {% elif pct >= 50
+              %}mdi:battery-medium {% elif pct >= 20 %}mdi:battery-low {% else
+              %}mdi:battery-alert{% endif %}
+            icon_color: >
+              {% set pct = states('sensor.smc1000i_2uc_charge_de_la_batterie') |
+              int %} {% if pct >= 50 %}green {% elif pct >= 20 %}orange {% else
+              %}red{% endif %}
+            tap_action:
+              action: none
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: '{{ states(''sensor.smc1000i_2uc_etat'') }}'
+            secondary: 'Code : {{ states(''sensor.smc1000i_2uc_code_d_etat'') }}'
+            icon: >
+              {% set code = states('sensor.smc1000i_2uc_code_d_etat') %} {% if
+              'OB' in code %}mdi:battery-alert {% elif 'CHRG' in code
+              %}mdi:battery-charging {% else %}mdi:battery-check{% endif %}
+            icon_color: >
+              {% set code = states('sensor.smc1000i_2uc_code_d_etat') %} {% if
+              'OB' in code %}red {% elif 'CHRG' in code %}blue {% else %}green{%
+              endif %}
+            tap_action:
+              action: none
+          - type: custom:mushroom-template-card
+            primary: '{{ states(''sensor.apcups_tension_de_la_batterie'') }} V'
+            secondary: Tension mesurée
+            icon: mdi:flash
+            icon_color: >
+              {% set v = states('sensor.apcups_tension_de_la_batterie') | float
+              %} {% if v > 28 %}red {% elif v > 26 %}orange {% else %}green{%
+              endif %}
+            tap_action:
+              action: none
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: '{{ states(''sensor.apcups_tension_nominale_de_la_batterie'') }} V'
+            secondary: Tension nominale
+            icon: mdi:flash-outline
+            icon_color: blue
+            tap_action:
+              action: none
+          - type: custom:mushroom-template-card
+            primary: '{{ states(''sensor.apcups_etat_du_signal_sonore'') | title }}'
+            secondary: Signal sonore
+            icon: >
+              {% if states('sensor.apcups_etat_du_signal_sonore') == 'enabled'
+              %}mdi:volume-high {% else %}mdi:volume-off{% endif %}
+            icon_color: >
+              {% if states('sensor.apcups_etat_du_signal_sonore') == 'enabled'
+              %}green {% else %}grey{% endif %}
+            tap_action:
+              action: none
+      - type: custom:button-card
+        entity: sensor.smc1000i_2uc_code_d_etat
+        show_entity_picture: false
+        show_icon: true
+        show_name: true
+        show_label: true
+        show_state: false
+        tap_action:
+          action: none
+        label: |
+          [[[
+            const code = states['sensor.smc1000i_2uc_code_d_etat'].state;
+            const charge = states['sensor.smc1000i_2uc_charge_de_la_batterie'].state;
+            const auto = states['sensor.smc1000i_autonomie_minutes'].state;
+            if (code.includes('OB')) return `Autonomie : ${auto} min — Charge : ${charge} %`;
+            if (parseInt(charge) < 50) return `Charge : ${charge} %`;
+            if (code.includes('CHRG')) return `${charge} % — ${states['sensor.smc1000i_2uc_etat'].state}`;
+            return `${charge} % — ${states['sensor.smc1000i_2uc_etat'].state}`;
+          ]]]
+        name: |
+          [[[
+            const code = states['sensor.smc1000i_2uc_code_d_etat'].state;
+            const charge = parseInt(states['sensor.smc1000i_2uc_charge_de_la_batterie'].state);
+            if (code.includes('OB')) return '⚠️ COUPURE SECTEUR DÉTECTÉE';
+            if (charge < 50) return '⚠️ Batterie faible — seuil NUT atteint';
+            if (code.includes('CHRG')) return '🔋 Batterie en charge';
+            return '✅ Onduleur OK';
+          ]]]
+        icon: |
+          [[[
+            const code = states['sensor.smc1000i_2uc_code_d_etat'].state;
+            const charge = parseInt(states['sensor.smc1000i_2uc_charge_de_la_batterie'].state);
+            if (code.includes('OB')) return 'mdi:power-plug-off';
+            if (charge < 50) return 'mdi:battery-alert';
+            if (code.includes('CHRG')) return 'mdi:battery-charging';
+            return 'mdi:battery-check';
+          ]]]
+        styles:
+          card:
+            - background: |
+                [[[
+                  const code = states['sensor.smc1000i_2uc_code_d_etat'].state;
+                  const charge = parseInt(states['sensor.smc1000i_2uc_charge_de_la_batterie'].state);
+                  if (code.includes('OB')) return 'rgba(255, 68, 68, 0.1)';
+                  if (charge < 50) return 'rgba(255, 184, 0, 0.1)';
+                  if (code.includes('CHRG')) return 'rgba(0, 212, 255, 0.08)';
+                  return 'rgba(0, 255, 136, 0.08)';
+                ]]]
+            - border: |
+                [[[
+                  const code = states['sensor.smc1000i_2uc_code_d_etat'].state;
+                  const charge = parseInt(states['sensor.smc1000i_2uc_charge_de_la_batterie'].state);
+                  if (code.includes('OB')) return '2px solid rgba(255, 68, 68, 0.7)';
+                  if (charge < 50) return '2px solid rgba(255, 184, 0, 0.7)';
+                  if (code.includes('CHRG')) return '2px solid rgba(0, 212, 255, 0.5)';
+                  return '2px solid rgba(0, 255, 136, 0.4)';
+                ]]]
+            - border-radius: 12px
+            - padding: 16px
+          icon:
+            - color: |
+                [[[
+                  const code = states['sensor.smc1000i_2uc_code_d_etat'].state;
+                  const charge = parseInt(states['sensor.smc1000i_2uc_charge_de_la_batterie'].state);
+                  if (code.includes('OB')) return '#ff4444';
+                  if (charge < 50) return '#ffb800';
+                  if (code.includes('CHRG')) return '#00d4ff';
+                  return '#00ff88';
+                ]]]
+            - width: 28px
+          name:
+            - color: |
+                [[[
+                  const code = states['sensor.smc1000i_2uc_code_d_etat'].state;
+                  const charge = parseInt(states['sensor.smc1000i_2uc_charge_de_la_batterie'].state);
+                  if (code.includes('OB')) return '#ff4444';
+                  if (charge < 50) return '#ffb800';
+                  if (code.includes('CHRG')) return '#00d4ff';
+                  return '#00ff88';
+                ]]]
+            - font-size: 14px
+            - font-weight: bold
+            - justify-self: start
+            - padding-left: 8px
+          label:
+            - color: '#888888'
+            - font-size: 12px
+            - justify-self: start
+            - padding-left: 8px
+          grid:
+            - grid-template-areas: '"i n" "i l"'
+            - grid-template-columns: 40px 1fr
+            - grid-template-rows: 1fr 1fr
+      - type: custom:mushroom-title-card
+        title: 🖥️ Extinction équipements
+        subtitle: Gestion automatique sur coupure secteur
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-number-card
+            entity: input_number.ups_seuil_extinction_nas
+            name: Seuil extinction NAS
+            icon: mdi:timer-alert-outline
+            icon_color: orange
+            display_mode: slider
+            tap_action:
+              action: none
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-template-card
+                primary: NAS Synology
+                secondary: >
+                  {% if states('button.hompl_nas000_shutdown') == 'unavailable'
+                  %}
+                    Éteint
+                  {% else %}
+                    En ligne
+                  {% endif %}
+                icon: mdi:nas
+                icon_color: >
+                  {% if states('button.hompl_nas000_shutdown') == 'unavailable'
+                  %}
+                    red
+                  {% else %}
+                    green
+                  {% endif %}
+                tap_action:
+                  action: none
+              - type: custom:button-card
+                entity: button.hompl_nas000_shutdown
+                show_icon: true
+                show_name: true
+                show_label: true
+                show_state: false
+                icon: mdi:power
+                name: Éteindre NAS
+                label: Extinction manuelle
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.hompl_nas000_shutdown
+                  confirmation:
+                    text: Confirmer l'extinction du NAS ?
+                styles:
+                  card:
+                    - background: rgba(255, 68, 68, 0.08)
+                    - border: 1px solid rgba(255, 68, 68, 0.4)
+                    - border-radius: 12px
+                    - padding: 12px
+                  icon:
+                    - color: '#ff4444'
+                    - width: 24px
+                  name:
+                    - color: '#ff4444'
+                    - font-size: 13px
+                    - font-weight: bold
+                    - justify-self: start
+                    - padding-left: 8px
+                  label:
+                    - color: '#888888'
+                    - font-size: 11px
+                    - justify-self: start
+                    - padding-left: 8px
+                  grid:
+                    - grid-template-areas: '"i n" "i l"'
+                    - grid-template-columns: 36px 1fr
+                    - grid-template-rows: 1fr 1fr
+          - type: custom:button-card
+            entity: sensor.smc1000i_autonomie_minutes
+            show_icon: true
+            show_name: true
+            show_label: true
+            show_state: false
+            icon: mdi:information-outline
+            tap_action:
+              action: none
+            name: |
+              [[[
+                const autoRaw = states['sensor.smc1000i_autonomie_minutes'] ? states['sensor.smc1000i_autonomie_minutes'].state : 'unavailable';
+                const seuilRaw = states['input_number.ups_seuil_extinction_nas'] ? states['input_number.ups_seuil_extinction_nas'].state : '20';
+                const codeRaw = states['sensor.smc1000i_2uc_code_d_etat'] ? states['sensor.smc1000i_2uc_code_d_etat'].state : '';
+                if (autoRaw === 'unavailable' || seuilRaw === 'unavailable') return '⏳ Données en attente…';
+                const auto = parseFloat(autoRaw);
+                const seuil = parseFloat(seuilRaw);
+                const delta = (auto - seuil).toFixed(1);
+                if (!codeRaw.includes('OB')) return `✅ Secteur OK — marge : ${delta} min avant extinction`;
+                if (auto <= seuil) return `🔴 SEUIL ATTEINT — extinction NAS déclenchée`;
+                return `⚠️ Sur batterie — extinction NAS dans ${delta} min`;
+              ]]]
+            label: |
+              [[[
+                const autoRaw = states['sensor.smc1000i_autonomie_minutes'] ? states['sensor.smc1000i_autonomie_minutes'].state : 'unavailable';
+                const seuilRaw = states['input_number.ups_seuil_extinction_nas'] ? states['input_number.ups_seuil_extinction_nas'].state : '20';
+                const nas = states['button.hompl_nas000_shutdown'] ? states['button.hompl_nas000_shutdown'].state : 'unavailable';
+                const nasLabel = nas === 'unavailable' ? 'Éteint' : 'En ligne';
+                if (autoRaw === 'unavailable') return `Autonomie : N/A — Seuil : ${seuilRaw} min — NAS : ${nasLabel}`;
+                return `Autonomie : ${parseFloat(autoRaw)} min — Seuil : ${seuilRaw} min — NAS : ${nasLabel}`;
+              ]]]
+            styles:
+              card:
+                - background: |
+                    [[[
+                      const code = states['sensor.smc1000i_2uc_code_d_etat'] ? states['sensor.smc1000i_2uc_code_d_etat'].state : '';
+                      const autoRaw = states['sensor.smc1000i_autonomie_minutes'] ? states['sensor.smc1000i_autonomie_minutes'].state : 'unavailable';
+                      const seuilRaw = states['input_number.ups_seuil_extinction_nas'] ? states['input_number.ups_seuil_extinction_nas'].state : '20';
+                      if (autoRaw === 'unavailable') return 'rgba(128, 128, 128, 0.05)';
+                      const auto = parseFloat(autoRaw);
+                      const seuil = parseFloat(seuilRaw);
+                      if (!code.includes('OB')) return 'rgba(0, 255, 136, 0.05)';
+                      if (auto <= seuil) return 'rgba(255, 68, 68, 0.1)';
+                      return 'rgba(255, 184, 0, 0.08)';
+                    ]]]
+                - border: |
+                    [[[
+                      const code = states['sensor.smc1000i_2uc_code_d_etat'] ? states['sensor.smc1000i_2uc_code_d_etat'].state : '';
+                      const autoRaw = states['sensor.smc1000i_autonomie_minutes'] ? states['sensor.smc1000i_autonomie_minutes'].state : 'unavailable';
+                      const seuilRaw = states['input_number.ups_seuil_extinction_nas'] ? states['input_number.ups_seuil_extinction_nas'].state : '20';
+                      if (autoRaw === 'unavailable') return '1px solid rgba(128, 128, 128, 0.3)';
+                      const auto = parseFloat(autoRaw);
+                      const seuil = parseFloat(seuilRaw);
+                      if (!code.includes('OB')) return '1px solid rgba(0, 255, 136, 0.3)';
+                      if (auto <= seuil) return '2px solid rgba(255, 68, 68, 0.7)';
+                      return '2px solid rgba(255, 184, 0, 0.6)';
+                    ]]]
+                - border-radius: 12px
+                - padding: 12px
+              icon:
+                - color: |
+                    [[[
+                      const code = states['sensor.smc1000i_2uc_code_d_etat'] ? states['sensor.smc1000i_2uc_code_d_etat'].state : '';
+                      const autoRaw = states['sensor.smc1000i_autonomie_minutes'] ? states['sensor.smc1000i_autonomie_minutes'].state : 'unavailable';
+                      const seuilRaw = states['input_number.ups_seuil_extinction_nas'] ? states['input_number.ups_seuil_extinction_nas'].state : '20';
+                      if (autoRaw === 'unavailable') return '#888888';
+                      const auto = parseFloat(autoRaw);
+                      const seuil = parseFloat(seuilRaw);
+                      if (!code.includes('OB')) return '#00ff88';
+                      if (auto <= seuil) return '#ff4444';
+                      return '#ffb800';
+                    ]]]
+                - width: 24px
+              name:
+                - color: |
+                    [[[
+                      const code = states['sensor.smc1000i_2uc_code_d_etat'] ? states['sensor.smc1000i_2uc_code_d_etat'].state : '';
+                      const autoRaw = states['sensor.smc1000i_autonomie_minutes'] ? states['sensor.smc1000i_autonomie_minutes'].state : 'unavailable';
+                      const seuilRaw = states['input_number.ups_seuil_extinction_nas'] ? states['input_number.ups_seuil_extinction_nas'].state : '20';
+                      if (autoRaw === 'unavailable') return '#888888';
+                      const auto = parseFloat(autoRaw);
+                      const seuil = parseFloat(seuilRaw);
+                      if (!code.includes('OB')) return '#00ff88';
+                      if (auto <= seuil) return '#ff4444';
+                      return '#ffb800';
+                    ]]]
+                - font-size: 13px
+                - font-weight: bold
+                - justify-self: start
+                - padding-left: 8px
+              label:
+                - color: '#888888'
+                - font-size: 11px
+                - justify-self: start
+                - padding-left: 8px
+              grid:
+                - grid-template-areas: '"i n" "i l"'
+                - grid-template-columns: 36px 1fr
+                - grid-template-rows: 1fr 1fr
+      - type: custom:mushroom-title-card
+        title: 📊 Autonomie
+        subtitle: Évolution sur 24h
+      - type: custom:mini-graph-card
+        name: Autonomie Restante
+        icon: mdi:timer-outline
+        hours_to_show: 24
+        points_per_hour: 4
+        line_width: 2
+        font_size: 75
+        show:
+          labels: true
+          points: false
+          legend: false
+          fill: true
+        entities:
+          - entity: sensor.smc1000i_autonomie_minutes
+            name: Autonomie (min)
+            color: '#a78bfa'
+      - type: custom:mushroom-title-card
+        title: ⚙️ Paramètres NUT
+        subtitle: Seuils configurés sur l'onduleur
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: >-
+              {{ (states('sensor.apcups_autonomie_de_la_batterie_faible') | int
+              / 60) | round(1) }} min
+            secondary: Seuil autonomie min
+            icon: mdi:timer-alert-outline
+            icon_color: orange
+            tap_action:
+              action: none
+          - type: custom:mushroom-template-card
+            primary: '{{ states(''sensor.apcups_avertissement_consigne_batterie'') }} %'
+            secondary: Alerte charge batterie
+            icon: mdi:battery-alert-variant-outline
+            icon_color: orange
+            tap_action:
+              action: none
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: '{{ states(''sensor.apcups_consigne_de_batterie_faible'') }} %'
+            secondary: Seuil batterie faible
+            icon: mdi:battery-remove-outline
+            icon_color: red
+            tap_action:
+              action: none
+          - type: custom:mushroom-template-card
+            primary: '{{ states(''sensor.apcups_delai_d_arret_de_l_onduleur'') }} s'
+            secondary: Délai arrêt onduleur
+            icon: mdi:power-sleep
+            icon_color: purple
+            tap_action:
+              action: none
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: '{{ states(''sensor.apcups_chimie_de_la_batterie'') }}'
+            secondary: Chimie batterie
+            icon: mdi:flask-outline
+            icon_color: yellow
+            tap_action:
+              action: none
+          - type: custom:mushroom-template-card
+            primary: >-
+              {% if states('sensor.apcups_minuterie_d_arret_de_la_charge') | int
+              == -1 %}Désactivé{% else %}{{
+              states('sensor.apcups_minuterie_d_arret_de_la_charge') }} s{%
+              endif %}
+            secondary: Minuterie arrêt charge
+            icon: mdi:timer-off-outline
+            icon_color: grey
+            tap_action:
+              action: none
+      - type: horizontal-stack
+        cards:
+          - type: custom:mushroom-template-card
+            primary: >-
+              {% if
+              states('sensor.apcups_minuterie_de_redemarrage_de_la_charge') |
+              int == -1 %}Désactivé{% else %}{{
+              states('sensor.apcups_minuterie_de_redemarrage_de_la_charge') }}
+              s{% endif %}
+            secondary: Minuterie redémarrage
+            icon: mdi:timer-refresh-outline
+            icon_color: grey
+            tap_action:
+              action: none
+      - type: custom:mushroom-title-card
+        title: 📊 Historiques
+        subtitle: Évolution sur 24h
+      - type: custom:mini-graph-card
+        name: Charge Batterie
+        icon: mdi:battery-charging
+        hours_to_show: 24
+        points_per_hour: 4
+        line_width: 2
+        font_size: 75
+        lower_bound: 0
+        upper_bound: 100
+        color_thresholds:
+          - value: 0
+            color: '#ff4444'
+          - value: 20
+            color: '#ffb800'
+          - value: 50
+            color: '#00ff88'
+        show:
+          labels: true
+          points: false
+          legend: false
+          fill: true
+        entities:
+          - entity: sensor.smc1000i_2uc_charge_de_la_batterie
+            name: Charge %
+      - type: custom:mini-graph-card
+        name: Tension Batterie
+        icon: mdi:flash
+        hours_to_show: 24
+        points_per_hour: 4
+        line_width: 2
+        font_size: 75
+        lower_bound: 22
+        upper_bound: 30
+        show:
+          labels: true
+          points: false
+          legend: false
+          fill: true
+        entities:
+          - entity: sensor.apcups_tension_de_la_batterie
+            name: Tension V
+            color: '#00d4ff'

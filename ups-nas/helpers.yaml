@@ -1,0 +1,26 @@
+# ============================================================
+# UPS / NAS - HELPERS
+# APC SMC1000I-2UC → NUT integration
+# NAS Synology RS4017xs+ → button.hompl_nas003_shutdown
+# ============================================================
+
+input_number:
+
+  ups_seuil_extinction_nas:
+    name: "Seuil extinction NAS (min)"
+    min: 5
+    max: 30
+    step: 1
+    unit_of_measurement: min
+    icon: mdi:nas
+
+template:
+  - sensor:
+      # Autonomie onduleur en minutes (NUT retourne des secondes)
+      - name: "SMC1000I Autonomie minutes"
+        unique_id: smc1000i_autonomie_minutes
+        unit_of_measurement: "min"
+        device_class: duration
+        state_class: measurement
+        icon: mdi:timer-outline
+        state: "{{ (states('sensor.apcups_autonomie_de_la_batterie') | int / 60) | round(1) }}"

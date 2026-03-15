@@ -1,0 +1,56 @@
+# 19. UPS / NAS
+# ============================================================
+# ============================================================
+# Extinction automatique NAS Synology sur coupure secteur
+# ============================================================
+- id: ups_extinction_nas
+  alias: "UPS — Extinction NAS sur batterie faible"
+  description: >
+    Éteint le NAS Synology automatiquement quand l'onduleur est sur batterie
+    et que l'autonomie restante atteint le seuil configuré.
+    Si le NAS est déjà éteint (entité unavailable), button.press échoue
+    silencieusement sans erreur.
+  mode: single
+
+  trigger:
+    - platform: template
+      value_template: >
+        {{ states('sensor.smc1000i_autonomie_minutes') | float
+           <= states('input_number.ups_seuil_extinction_nas') | float
+           and 'OB' in states('sensor.smc1000i_2uc_code_d_etat') }}
+
+  condition:
+    # Onduleur sur batterie
+    - condition: template
+      value_template: "{{ 'OB' in states('sensor.smc1000i_2uc_code_d_etat') }}"
+    # Autonomie sous le seuil
+    - condition: template
+      value_template: >
+        {{ states('sensor.smc1000i_autonomie_minutes') | float
+           <= states('input_number.ups_seuil_extinction_nas') | float }}
+
+  action:
+    # 1. Notification
+    - service: notify.notify
+      data:
+        title: "⚡ UPS — Extinction NAS"
+        message: >
+          Coupure secteur. Autonomie : {{ states('sensor.smc1000i_autonomie_minutes') }} min
+          (seuil : {{ states('input_number.ups_seuil_extinction_nas') }} min).
+          Extinction NAS en cours.
+
+    # 2. Extinction du NAS — échoue silencieusement si déjà éteint
+    - service: button.press
+      target:
+        entity_id: button.hompl_nas000_shutdown
+
+    # 3. Log
+    - service: logbook.log
+      data:
+        name: "UPS — Extinction NAS"
+        message: >
+          NAS éteint automatiquement. Autonomie UPS :
+          {{ states('sensor.smc1000i_autonomie_minutes') }} min —
+          Charge batterie : {{ states('sensor.smc1000i_2uc_charge_de_la_batterie') }} %
+# ============================================================
+
