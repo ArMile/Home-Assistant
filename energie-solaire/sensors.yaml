@@ -1,0 +1,13 @@
+# ============================================================
+# ENERGIE SOLAIRE - SENSORS (platform: integration)
+# Calcul énergie totale injectée sur le réseau EDF
+# Source : sensor.puissance_surplus_solaire (template sensor)
+# ============================================================
+
+- platform: integration
+  source: sensor.puissance_surplus_solaire
+  name: "Énergie totale injectée"
+  unique_id: energie_totale_injectee
+  unit_prefix: k
+  round: 2
+  method: left

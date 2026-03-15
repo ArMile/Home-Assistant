@@ -1,0 +1,12 @@
+# ============================================================
+# INFRA - SENSORS (platform: snmp)
+# Supervision Switch Cisco Catalyst 3650-48PS
+# Communauté SNMP : HA_READ (ACL acl-snmp-ha, lecture seule)
+# ============================================================
+
+- platform: snmp
+  name: "Cisco 3650"
+  host: 192.168.xxx.xxx
+  community: xxxxxxx
+  version: "2c"
+  baseoid: 1.3.6.1.2.1.1.1.0

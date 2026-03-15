@@ -1,0 +1,760 @@
+# BALLON EAU CHAUDE - AUTOMATIONS COMPLÈTES
+# ============================================================
+
+# ============================================================
+# 11.1 MISE À JOUR AUTOMATIQUE DES HEURES (LEVER/COUCHER SOLEIL)
+# ============================================================
+- id: ballon_maj_heures_soleil
+  alias: "Ballon - MAJ heures selon soleil"
+  description: "Met à jour les heures de début/fin selon le lever/coucher du soleil"
+  
+  trigger:
+    # Tous les jours à minuit
+    - platform: time
+      at: "00:01:00"
+    
+    # Au démarrage de HA
+    - platform: homeassistant
+      event: start
+  
+  action:
+    # Calculer heure de lever + marge personnalisable
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.ballon_heure_debut
+      data:
+        time: >
+          {% set sunrise = state_attr('sun.sun', 'next_rising') | as_datetime | as_local %}
+          {% set marge = states('input_number.ballon_marge_debut') | int %}
+          {% set debut = sunrise + timedelta(minutes=marge) %}
+          {{ debut.strftime('%H:%M') }}
+    
+    # Calculer heure de coucher - marge personnalisable
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.ballon_heure_fin
+      data:
+        time: >
+          {% set sunset = state_attr('sun.sun', 'next_setting') | as_datetime | as_local %}
+          {% set marge = states('input_number.ballon_marge_fin') | int %}
+          {% set fin = sunset - timedelta(minutes=marge) %}
+          {{ fin.strftime('%H:%M') }}
+    
+    # Notification de confirmation
+    - service: persistent_notification.create
+      data:
+        title: "☀️ Ballon - Heures mises à jour"
+        message: >
+          Nouvelles heures de fonctionnement :
+          
+          Début : {{ states('input_datetime.ballon_heure_debut') }}
+          Fin : {{ states('input_datetime.ballon_heure_fin') }}
+          
+          Lever du soleil : {{ states('sensor.heure_lever_du_soleil') }}
+          Coucher du soleil : {{ states('sensor.heure_coucher_du_soleil') }}
+  
+  mode: single
+
+# ============================================================
+# 11.2 DÉMARRAGE SUR SURPLUS
+# ============================================================
+- id: ballon_demarrage_surplus
+  alias: "Ballon - Démarrage sur surplus"
+  description: "Active le ballon quand surplus solaire suffisant"
+  
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.puissance_surplus_solaire
+      above: input_number.ballon_seuil_demarrage
+      for:
+        minutes: 2
+  
+  condition:
+    # Le ballon n'est pas déjà en marche
+    - condition: state
+      entity_id: switch.ballon_eau_chaude
+      state: 'off'
+    
+    # L'automation est activée
+    - condition: state
+      entity_id: input_boolean.ballon_surplus_actif
+      state: 'on'
+    
+    # Soleil levé
+    - condition: sun
+      after: sunrise
+      before: sunset
+    
+    # Plage horaire (heures ajustées automatiquement)
+    - condition: template
+      value_template: >
+        {% set now_time = now().strftime('%H:%M') %}
+        {% set debut = states('input_datetime.ballon_heure_debut') %}
+        {% set fin = states('input_datetime.ballon_heure_fin') %}
+        {{ debut <= now_time < fin }}
+  
+  action:
+    # Activer le contacteur
+    - service: switch.turn_on
+      target:
+        entity_id: switch.ballon_eau_chaude
+    
+    # Mettre à jour le statut
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.ballon_statut
+      data:
+        option: "En chauffe (surplus)"
+    
+    # Notification dans HA
+    - service: persistent_notification.create
+      data:
+        title: "🌞 Ballon Eau Chaude"
+        message: >
+          Démarrage sur surplus solaire
+          
+          Surplus actuel: {{ states('sensor.puissance_surplus_solaire') }}W
+          Seuil: {{ states('input_number.ballon_seuil_demarrage') }}W
+          Heure: {{ now().strftime('%H:%M') }}
+    
+    # Notification Email
+    - service: notify.ha_email
+      data:
+        title: "🌞 Ballon Eau Chaude - Démarrage"
+        message: >
+          Le ballon d'eau chaude a démarré grâce au surplus solaire.
+          
+          Surplus actuel: {{ states('sensor.puissance_surplus_solaire') }}W
+          Production solaire: {{ states('sensor.ecu_current_power') }}W
+          Seuil de démarrage: {{ states('input_number.ballon_seuil_demarrage') }}W
+          Heure: {{ now().strftime('%H:%M') }}
+  
+  mode: single
+
+# ============================================================
+# 11.3 ARRÊT SURPLUS INSUFFISANT
+# ============================================================
+- id: ballon_arret_surplus
+  alias: "Ballon - Arrêt surplus insuffisant"
+  description: "Désactive le ballon quand surplus insuffisant"
+  
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.puissance_surplus_solaire
+      below: input_number.ballon_seuil_arret
+      for:
+        minutes: 5
+  
+  condition:
+    # Le ballon est en marche
+    - condition: state
+      entity_id: switch.ballon_eau_chaude
+      state: 'on'
+    
+    # Et il était en mode surplus (pas forcé manuellement)
+    - condition: state
+      entity_id: input_select.ballon_statut
+      state: "En chauffe (surplus)"
+  
+  action:
+    # Désactiver le contacteur
+    - service: switch.turn_off
+      target:
+        entity_id: switch.ballon_eau_chaude
+    
+    # Mettre à jour le statut
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.ballon_statut
+      data:
+        option: "En attente de surplus"
+    
+    # Notification dans HA
+    - service: persistent_notification.create
+      data:
+        title: "⚡ Ballon Eau Chaude"
+        message: >
+          Arrêt - Surplus insuffisant
+          
+          Surplus actuel: {{ states('sensor.puissance_surplus_solaire') }}W
+          Seuil arrêt: {{ states('input_number.ballon_seuil_arret') }}W
+          Heure: {{ now().strftime('%H:%M') }}
+    
+    # Notification Email
+    - service: notify.ha_email
+      data:
+        title: "⚡ Ballon Eau Chaude - Arrêt"
+        message: >
+          Le ballon d'eau chaude s'est arrêté (surplus insuffisant).
+          
+          Surplus actuel: {{ states('sensor.puissance_surplus_solaire') }}W
+          Production solaire: {{ states('sensor.ecu_current_power') }}W
+          Seuil d'arrêt: {{ states('input_number.ballon_seuil_arret') }}W
+          Heure: {{ now().strftime('%H:%M') }}
+  
+  mode: single
+
+# ============================================================
+# 11.4 ARRÊT AU COUCHER DU SOLEIL
+# ============================================================
+- id: ballon_arret_coucher_soleil
+  alias: "Ballon - Arrêt coucher du soleil"
+  description: "Arrête le ballon au coucher du soleil"
+  
+  trigger:
+    - platform: sun
+      event: sunset
+  
+  condition:
+    - condition: state
+      entity_id: switch.ballon_eau_chaude
+      state: 'on'
+  
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id: switch.ballon_eau_chaude
+    
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.ballon_statut
+      data:
+        option: "Arrêté"
+    
+    - service: persistent_notification.create
+      data:
+        title: "🌅 Ballon Eau Chaude"
+        message: "Arrêt automatique (coucher du soleil)"
+  
+  mode: single
+
+# ============================================================
+# 11.5 SYNCHRONISATION STATUT
+# ============================================================
+- id: ballon_sync_statut
+  alias: "Ballon - Synchronisation statut"
+  description: "Met à jour le statut si le contacteur change d'état manuellement"
+  
+  trigger:
+    - platform: state
+      entity_id: switch.ballon_eau_chaude
+  
+  action:
+    - choose:
+        # Si allumé manuellement
+        - conditions:
+            - condition: state
+              entity_id: switch.ballon_eau_chaude
+              state: 'on'
+            - condition: not
+              conditions:
+                - condition: state
+                  entity_id: input_select.ballon_statut
+                  state: "En chauffe (surplus)"
+          sequence:
+            - service: input_select.select_option
+              target:
+                entity_id: input_select.ballon_statut
+              data:
+                option: "Chauffe forcée manuelle"
+        
+        # Si éteint manuellement
+        - conditions:
+            - condition: state
+              entity_id: switch.ballon_eau_chaude
+              state: 'off'
+          sequence:
+            - service: input_select.select_option
+              target:
+                entity_id: input_select.ballon_statut
+              data:
+                option: "Arrêté"
+  
+  mode: queued
+# ============================================================
+
+# ============================================================
+# 12. FRIGO AMÉRICAIN - 3 PALIERS
+# ============================================================
+# ============================================================
+# FRIGO/CONGÉLATEUR - BOOST SUR SURPLUS (PRIORITAIRE)
+# ============================================================
+# ------------------------------------------------------------
+# FRIGO - PALIER 1 : Boost Températures (prioritaire)
+# ------------------------------------------------------------
+- id: frigo_activation_boost_temperatures
+  alias: "Frigo - Activation boost températures"
+  description: "Baisse les températures quand surplus >= 300W"
+  
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.puissance_surplus_solaire
+      above: input_number.frigo_seuil_demarrage
+      for:
+        minutes: 2
+  
+  condition:
+    # Pas déjà en mode boost
+    - condition: state
+      entity_id: input_select.frigo_statut
+      state: "Normal"
+    
+    # Automation activée
+    - condition: state
+      entity_id: input_boolean.frigo_surplus_actif
+      state: 'on'
+    
+    # Soleil levé
+    - condition: sun
+      after: sunrise
+      before: sunset
+  
+  action:
+    # Baisser températures
+    - service: number.set_value
+      target:
+        entity_id: number.frigo_americain_temperature_du_frigo
+      data:
+        value: "{{ states('input_number.frigo_temp_boost') | int }}"
+    
+    - service: number.set_value
+      target:
+        entity_id: number.frigo_americain_temperature_du_congelateur
+      data:
+        value: "{{ states('input_number.congelateur_temp_boost') | int }}"
+    
+    # Mettre à jour le statut
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.frigo_statut
+      data:
+        option: "Boost (surplus)"
+    
+    # Notification
+    - service: persistent_notification.create
+      data:
+        title: "❄️ Frigo - Boost températures"
+        message: >
+          Activation boost températures (Palier 1)
+          
+          Nouvelles consignes :
+          - Frigo : {{ states('input_number.frigo_temp_boost') }}°C
+          - Congélateur : {{ states('input_number.congelateur_temp_boost') }}°C
+          
+          Surplus : {{ states('sensor.puissance_surplus_solaire') }}W
+  
+  mode: single
+# ============================================================
+
+# ============================================================
+# FRIGO AMÉRICAIN - AUTOMATIONS 3 PALIERS
+# Nomenclature clarifiée et seuil arrêt Power Boost
+# ============================================================
+
+# ============================================================
+# PALIER 1 : Boost Températures (prioritaire)
+# ============================================================
+- id: frigo_activation_boost_temperatures
+  alias: "Frigo - Activation boost températures"
+  description: "Baisse les températures quand surplus >= seuil démarrage"
+  
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.puissance_surplus_solaire
+      above: input_number.frigo_seuil_demarrage
+      for:
+        minutes: 2
+  
+  condition:
+    # Pas déjà en mode boost
+    - condition: state
+      entity_id: input_select.frigo_statut
+      state: "Normal"
+    
+    # Automation activée
+    - condition: state
+      entity_id: input_boolean.frigo_surplus_actif
+      state: 'on'
+    
+    # Soleil levé
+    - condition: sun
+      after: sunrise
+      before: sunset
+  
+  action:
+    # Baisser température frigo
+    - service: number.set_value
+      target:
+        entity_id: number.frigo_americain_temperature_du_frigo
+      data:
+        value: "{{ states('input_number.frigo_temp_boost') | int }}"
+    
+    # Baisser température congélateur
+    - service: number.set_value
+      target:
+        entity_id: number.frigo_americain_temperature_du_congelateur
+      data:
+        value: "{{ states('input_number.congelateur_temp_boost') | int }}"
+    
+    # Mettre à jour le statut
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.frigo_statut
+      data:
+        option: "Boost (surplus)"
+    
+    # Notification
+    - service: persistent_notification.create
+      data:
+        title: "❄️ Frigo - Boost activé"
+        message: >
+          Activation boost températures
+          
+          Nouvelles consignes :
+          - Frigo : {{ states('input_number.frigo_temp_boost') }}°C
+          - Congélateur : {{ states('input_number.congelateur_temp_boost') }}°C
+          
+          Surplus : {{ states('sensor.puissance_surplus_solaire') }}W
+          Seuil : {{ states('input_number.frigo_seuil_demarrage') }}W
+    
+    # Email (optionnel)
+    - service: notify.ha_email
+      data:
+        title: "❄️ Frigo - Boost activé"
+        message: >
+          Le frigo est passé en mode boost températures.
+          
+          Nouvelles consignes :
+          - Frigo : {{ states('input_number.frigo_temp_boost') }}°C
+          - Congélateur : {{ states('input_number.congelateur_temp_boost') }}°C
+          
+          Surplus actuel : {{ states('sensor.puissance_surplus_solaire') }}W
+          Heure : {{ now().strftime('%H:%M') }}
+  
+  mode: single
+
+# ============================================================
+# PALIER 3 : Power Cool + Power Freeze (ballon ON + surplus)
+# ============================================================
+- id: frigo_activation_power_boost
+  alias: "Frigo - Activation Mode Power Boost"
+  description: "Active Power Cool/Freeze si ballon ON et surplus suffisant"
+  
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.puissance_surplus_solaire
+      above: input_number.frigo_power_seuil_activation
+      for:
+        minutes: 3
+  
+  condition:
+    # Ballon déjà en marche (Palier 2 actif)
+    - condition: state
+      entity_id: switch.ballon_eau_chaude
+      state: 'on'
+    
+    # Frigo en mode boost températures (Palier 1 actif)
+    - condition: state
+      entity_id: input_select.frigo_statut
+      state: "Boost (surplus)"
+    
+    # Power Cool/Freeze pas déjà activés
+    - condition: state
+      entity_id: switch.frigo_americain_power_cool
+      state: 'off'
+    
+    - condition: state
+      entity_id: switch.frigo_americain_power_freeze
+      state: 'off'
+    
+    # Automation activée
+    - condition: state
+      entity_id: input_boolean.frigo_surplus_actif
+      state: 'on'
+    
+    # Soleil levé
+    - condition: sun
+      after: sunrise
+      before: sunset
+  
+  action:
+    # Activer Power Cool
+    - service: switch.turn_on
+      target:
+        entity_id: switch.frigo_americain_power_cool
+    
+    # Activer Power Freeze
+    - service: switch.turn_on
+      target:
+        entity_id: switch.frigo_americain_power_freeze
+    
+    # Mettre à jour le statut
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.frigo_statut
+      data:
+        option: "Boost Max (surplus)"
+    
+    # Notification
+    - service: persistent_notification.create
+      data:
+        title: "❄️❄️ Frigo - Mode Power Boost activé"
+        message: >
+          Activation Power Cool + Power Freeze
+          
+          Palier 1 : Températures boost ✅
+          Palier 2 : Ballon ON ✅
+          Palier 3 : Power Cool/Freeze ✅
+          
+          Surplus disponible : {{ states('sensor.puissance_surplus_solaire') }}W
+          Consommation totale estimée : ~1950W
+    
+    # Email
+    - service: notify.ha_email
+      data:
+        title: "❄️❄️ Frigo - Mode Power Boost activé"
+        message: >
+          Le frigo est passé en mode boost MAXIMUM !
+          
+          Power Cool : Activé
+          Power Freeze : Activé
+          Ballon : ON
+          Températures : Boost
+          
+          Surplus : {{ states('sensor.puissance_surplus_solaire') }}W
+          Heure : {{ now().strftime('%H:%M') }}
+  
+  mode: single
+
+# ============================================================
+# Désactivation Power Boost (surplus insuffisant)
+# ============================================================
+- id: frigo_desactivation_power_boost
+  alias: "Frigo - Désactivation Mode Power Boost"
+  description: "Désactive Power Cool/Freeze si surplus < seuil arrêt"
+  
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.puissance_surplus_solaire
+      below: input_number.frigo_power_seuil_arret
+      for:
+        minutes: 10
+  
+  condition:
+    # Power Cool ou Freeze activés
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: switch.frigo_americain_power_cool
+          state: 'on'
+        - condition: state
+          entity_id: switch.frigo_americain_power_freeze
+          state: 'on'
+  
+  action:
+    # Désactiver Power Cool/Freeze
+    - service: switch.turn_off
+      target:
+        entity_id: 
+          - switch.frigo_americain_power_cool
+          - switch.frigo_americain_power_freeze
+    
+    # Retour statut Boost (températures restent baissées)
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.frigo_statut
+      data:
+        option: "Boost (surplus)"
+    
+    # Notification
+    - service: persistent_notification.create
+      data:
+        title: "🔄 Frigo - Mode Power Boost désactivé"
+        message: >
+          Power Cool/Freeze désactivés (surplus insuffisant)
+          
+          Surplus : {{ states('sensor.puissance_surplus_solaire') }}W
+          Seuil arrêt : {{ states('input_number.frigo_power_seuil_arret') }}W
+          
+          Boost températures reste actif
+  
+  mode: single
+
+# ============================================================
+# Désactivation Power Boost si ballon s'arrête
+# ============================================================
+- id: frigo_desactivation_power_boost_ballon_arret
+  alias: "Frigo - Désactiver Power Boost si ballon arrêté"
+  description: "Désactive Power Cool/Freeze si le ballon s'arrête"
+  
+  trigger:
+    - platform: state
+      entity_id: switch.ballon_eau_chaude
+      to: 'off'
+      for:
+        seconds: 30
+  
+  condition:
+    # Power Cool ou Freeze activés
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: switch.frigo_americain_power_cool
+          state: 'on'
+        - condition: state
+          entity_id: switch.frigo_americain_power_freeze
+          state: 'on'
+  
+  action:
+    # Désactiver Power Cool/Freeze
+    - service: switch.turn_off
+      target:
+        entity_id: 
+          - switch.frigo_americain_power_cool
+          - switch.frigo_americain_power_freeze
+    
+    # Retour statut Boost (températures restent baissées)
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.frigo_statut
+      data:
+        option: "Boost (surplus)"
+    
+    # Notification
+    - service: persistent_notification.create
+      data:
+        title: "🔄 Frigo - Mode Power Boost désactivé"
+        message: >
+          Power Cool/Freeze désactivés (ballon arrêté)
+          
+          Boost températures reste actif
+  
+  mode: single
+
+# ============================================================
+# Désactivation complète (retour normal)
+# ============================================================
+- id: frigo_desactivation_complete
+  alias: "Frigo - Désactivation complète"
+  description: "Remonte les températures et désactive Power Cool/Freeze"
+  
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.puissance_surplus_solaire
+      below: input_number.frigo_seuil_arret
+      for:
+        minutes: 10
+  
+  condition:
+    # En mode boost actuellement
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: input_select.frigo_statut
+          state: "Boost (surplus)"
+        - condition: state
+          entity_id: input_select.frigo_statut
+          state: "Boost Max (surplus)"
+  
+  action:
+    # Désactiver Power Cool/Freeze (au cas où)
+    - service: switch.turn_off
+      target:
+        entity_id: 
+          - switch.frigo_americain_power_cool
+          - switch.frigo_americain_power_freeze
+    
+    # Remonter température frigo
+    - service: number.set_value
+      target:
+        entity_id: number.frigo_americain_temperature_du_frigo
+      data:
+        value: "{{ states('input_number.frigo_temp_normale') | int }}"
+    
+    # Remonter température congélateur
+    - service: number.set_value
+      target:
+        entity_id: number.frigo_americain_temperature_du_congelateur
+      data:
+        value: "{{ states('input_number.congelateur_temp_normale') | int }}"
+    
+    # Mettre à jour le statut
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.frigo_statut
+      data:
+        option: "Normal"
+    
+    # Notification
+    - service: persistent_notification.create
+      data:
+        title: "🔄 Frigo - Retour normal"
+        message: >
+          Retour aux températures normales
+          
+          Consignes :
+          - Frigo : {{ states('input_number.frigo_temp_normale') }}°C
+          - Congélateur : {{ states('input_number.congelateur_temp_normale') }}°C
+          
+          Surplus insuffisant : {{ states('sensor.puissance_surplus_solaire') }}W
+  
+  mode: single
+
+# ============================================================
+# Arrêt au coucher du soleil
+# ============================================================
+- id: frigo_arret_coucher_soleil
+  alias: "Frigo - Arrêt boost coucher du soleil"
+  description: "Remet tout en normal au coucher du soleil"
+  
+  trigger:
+    - platform: sun
+      event: sunset
+  
+  condition:
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: input_select.frigo_statut
+          state: "Boost (surplus)"
+        - condition: state
+          entity_id: input_select.frigo_statut
+          state: "Boost Max (surplus)"
+  
+  action:
+    # Désactiver Power Cool/Freeze
+    - service: switch.turn_off
+      target:
+        entity_id: 
+          - switch.frigo_americain_power_cool
+          - switch.frigo_americain_power_freeze
+    
+    # Remonter températures
+    - service: number.set_value
+      target:
+        entity_id: number.frigo_americain_temperature_du_frigo
+      data:
+        value: "{{ states('input_number.frigo_temp_normale') | int }}"
+    
+    - service: number.set_value
+      target:
+        entity_id: number.frigo_americain_temperature_du_congelateur
+      data:
+        value: "{{ states('input_number.congelateur_temp_normale') | int }}"
+    
+    # Mettre à jour le statut
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.frigo_statut
+      data:
+        option: "Normal"
+    
+    - service: persistent_notification.create
+      data:
+        title: "🌅 Frigo - Retour normal"
+        message: "Températures normales (coucher du soleil)"
+  
+  mode: single
+# ============================================================
+
+# ============================================================

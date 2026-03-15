@@ -1,0 +1,252 @@
+# ============================================================
+# ENERGIE SOLAIRE - HELPERS
+# Gestion surplus solaire → Ballon eau chaude + Frigo américain
+# Intégration ZLinky TIC Standard (SINSTI = injection réseau)
+# ============================================================
+
+input_number:
+
+  # Seuils Ballon eau chaude
+  ballon_seuil_demarrage:
+    name: "Seuil Démarrage Ballon"
+    min: 200
+    max: 2000
+    step: 50
+    unit_of_measurement: "W"
+    icon: mdi:flash-triangle
+
+  ballon_seuil_arret:
+    name: "Seuil Arrêt Ballon"
+    min: 100
+    max: 1500
+    step: 50
+    unit_of_measurement: "W"
+    icon: mdi:flash-triangle-outline
+
+  ballon_marge_debut:
+    name: "Marge après lever du soleil"
+    min: 0
+    max: 120
+    step: 15
+    unit_of_measurement: "min"
+    icon: mdi:weather-sunset-up
+
+  ballon_marge_fin:
+    name: "Marge avant coucher du soleil"
+    min: 0
+    max: 120
+    step: 15
+    unit_of_measurement: "min"
+    icon: mdi:weather-sunset-down
+
+  # Seuils Frigo américain
+  frigo_seuil_demarrage:
+    name: "Seuil Démarrage Frigo"
+    min: 100
+    max: 1000
+    step: 50
+    unit_of_measurement: "W"
+    icon: mdi:flash-triangle
+
+  frigo_seuil_arret:
+    name: "Seuil Arrêt Frigo"
+    min: 50
+    max: 800
+    step: 50
+    unit_of_measurement: "W"
+    icon: mdi:flash-triangle-outline
+
+  frigo_power_seuil_activation:
+    name: "Frigo - Activation Mode Power Boost"
+    min: 100
+    max: 1000
+    step: 50
+    unit_of_measurement: "W"
+    icon: mdi:snowflake-alert
+
+  frigo_power_seuil_arret:
+    name: "Frigo - Arrêt Mode Power Boost"
+    min: 50
+    max: 800
+    step: 50
+    unit_of_measurement: "W"
+    icon: mdi:snowflake
+
+  frigo_temp_normale:
+    name: "Frigo Température Normale"
+    min: 2
+    max: 6
+    step: 1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer
+
+  congelateur_temp_normale:
+    name: "Congélateur Température Normale"
+    min: -27
+    max: -15
+    step: 1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-low
+
+  frigo_temp_boost:
+    name: "Frigo Température Boost"
+    min: 1
+    max: 5
+    step: 1
+    unit_of_measurement: "°C"
+    icon: mdi:snowflake
+
+  congelateur_temp_boost:
+    name: "Congélateur Température Boost"
+    min: -25
+    max: -18
+    step: 1
+    unit_of_measurement: "°C"
+    icon: mdi:snowflake-alert
+
+input_boolean:
+
+  ballon_surplus_actif:
+    name: "Ballon sur Surplus Activé"
+    icon: mdi:water-boiler-auto
+
+  frigo_surplus_actif:
+    name: "Frigo sur Surplus Activé"
+    icon: mdi:fridge
+
+input_datetime:
+
+  ballon_heure_debut:
+    name: "Ballon - Heure Début (auto)"
+    has_date: false
+    has_time: true
+
+  ballon_heure_fin:
+    name: "Ballon - Heure Fin (auto)"
+    has_date: false
+    has_time: true
+
+input_select:
+
+  ballon_statut:
+    name: "Statut Ballon"
+    options:
+      - "Arrêté"
+      - "En chauffe (surplus)"
+      - "En attente de surplus"
+      - "Chauffe forcée manuelle"
+    initial: "Arrêté"
+    icon: mdi:water-boiler
+
+  frigo_statut:
+    name: "Statut Frigo Surplus"
+    options:
+      - "Normal"
+      - "Boost (surplus)"
+      - "Boost Max (surplus)"
+      - "En attente de surplus"
+    initial: "Normal"
+    icon: mdi:fridge
+
+template:
+  - sensor:
+      # Puissance surplus solaire (ZLinky SINSTI - mode producteur Standard)
+      - name: "Puissance surplus solaire"
+        unique_id: puissance_surplus_solaire
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% set sinsti_va = states('sensor.zlinky_z2m_sinsti') | float(0) %}
+          {% set sinsti_w = sinsti_va * 0.95 %}
+          {{ sinsti_w | round(0) }}
+        availability: >
+          {{ states('sensor.zlinky_z2m_sinsti') not in ['unknown', 'unavailable', 'null'] }}
+        icon: mdi:solar-power-variant
+
+      # Puissance consommée réseau (ZLinky SINSTS)
+      - name: "ZLinky PAPP Power"
+        unique_id: "zlinky_papp_power"
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {{ (states('sensor.zlinky_z2m_sinsts') | float(0) * 0.95) | round(0) }}
+        availability: "{{ states('sensor.zlinky_z2m_sinsts') not in ['unavailable', 'unknown'] }}"
+        icon: mdi:lightning-bolt
+
+      # Production solaire brute (ECU)
+      - name: "Production Solaire"
+        unique_id: production_solaire_filtree
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        state: >
+          {% if states('sensor.ecu_current_power') in ['unavailable', 'unknown'] %}
+            0
+          {% else %}
+            {{ states('sensor.ecu_current_power') | float(0) | round(0) }}
+          {% endif %}
+        availability: "{{ true }}"
+        icon: mdi:solar-panel
+
+      # Heures lever/coucher du soleil (utilisées par automations ballon)
+      - name: "Heure lever du soleil"
+        unique_id: heure_lever_soleil
+        state: >
+          {{ (state_attr('sun.sun', 'next_rising') | as_datetime | as_local).strftime('%H:%M') }}
+        icon: mdi:weather-sunset-up
+
+      - name: "Heure coucher du soleil"
+        unique_id: heure_coucher_soleil
+        state: >
+          {{ (state_attr('sun.sun', 'next_setting') | as_datetime | as_local).strftime('%H:%M') }}
+        icon: mdi:weather-sunset-down
+
+      # Consommation journalière totale EDF Tempo (somme 6 index)
+      - name: "Consommation Journalière Totale"
+        unique_id: consommation_journaliere_totale
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: measurement
+        state: >
+          {{
+            (states('sensor.energie_jour_hc_bleu')|float(0)) +
+            (states('sensor.energie_jour_hc_blanc')|float(0)) +
+            (states('sensor.energie_jour_hc_rouge')|float(0)) +
+            (states('sensor.energie_jour_hp_bleu')|float(0)) +
+            (states('sensor.energie_jour_hp_blanc')|float(0)) +
+            (states('sensor.energie_jour_hp_rouge')|float(0))
+          }}
+
+utility_meter:
+
+  # Compteurs EDF Tempo HC/HP (6 index)
+  energie_jour_hc_bleu:
+    source: sensor.zlinky_z2m_easf01
+    cycle: daily
+
+  energie_jour_hc_blanc:
+    source: sensor.zlinky_z2m_easf03
+    cycle: daily
+
+  energie_jour_hc_rouge:
+    source: sensor.zlinky_z2m_easf05
+    cycle: daily
+
+  energie_jour_hp_bleu:
+    source: sensor.zlinky_z2m_easf02
+    cycle: daily
+
+  energie_jour_hp_blanc:
+    source: sensor.zlinky_z2m_easf04
+    cycle: daily
+
+  energie_jour_hp_rouge:
+    source: sensor.zlinky_z2m_easf06
+    cycle: daily
+
+  # Injection réseau journalière
+  injection_journaliere:
+    source: sensor.energie_totale_injectee
+    cycle: daily

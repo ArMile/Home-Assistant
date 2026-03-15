@@ -1,0 +1,990 @@
+# 13. TV SALON
+# ============================================================
+# ============================================================
+# AUTOMATIONS TV SALON
+# ============================================================
+
+# ============================================================
+# TRACE ALLUMAGE / EXTINCTION / COUPURE
+# ============================================================
+
+# ------------------------------------------------------------
+# Trace allumage TV - Basé sur consommation + état media_player
+# ------------------------------------------------------------
+# TRIGGER : Consommation > 50W pendant 10 secondes
+# CONDITIONS :
+#   1. Media player = "on" (vraie allumage, pas juste pic de veille)
+#   2. Délai > 60s depuis dernier allumage (anti-rebond)
+# ACTION : Enregistre heure actuelle dans input_datetime.tv_salon_last_on
+# ------------------------------------------------------------
+- id: tv_salon_trace_allumage_tv
+  alias: "TV Salon - Trace allumage TV"
+  description: "Enregistre l'heure d'allumage de la TV (basé sur consommation)"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.salon_tv_home_cinema_power
+      above: 50
+      for:
+        seconds: 10
+  condition:
+    # Condition 1 : Disjoncteur ON (évite faux positifs après rallumage)
+    - condition: state
+      entity_id: switch.salon_tv_home_cinema
+      state: "on"
+    
+    # Condition 2 : PAS dans les 10 min après changement disjoncteur
+    - condition: template
+      value_template: >
+        {% set disjoncteur_last_changed = as_timestamp(states.switch.salon_tv_home_cinema.last_changed) | default(0) %}
+        {% set now_ts = now().timestamp() %}
+        {% set minutes_since_change = ((now_ts - disjoncteur_last_changed) / 60) | int %}
+        {{ minutes_since_change > 10 }}
+    
+    # Condition 3 : Anti-rebond (60s entre deux enregistrements)
+    - condition: template
+      value_template: >
+        {% set last_on_str = states('input_datetime.tv_salon_last_on') %}
+        {% if last_on_str in ['unknown', 'unavailable'] %}
+          true
+        {% else %}
+          {% set last_on = as_timestamp(last_on_str) | default(0) %}
+          {% set now_ts = now().timestamp() %}
+          {{ (now_ts - last_on) > 60 }}
+        {% endif %}
+  action:
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.tv_salon_last_on
+      data:
+        datetime: "{{ now() }}"
+  mode: single
+
+# ------------------------------------------------------------
+# Trace extinction TV - Basé sur consommation
+# ------------------------------------------------------------
+# TRIGGER : Consommation < 10W pendant 10 secondes
+# CONDITIONS :
+#   1. Disjoncteur = ON (sinon c'est une coupure disjoncteur, pas extinction TV)
+#   2. Délai > 60s depuis dernière extinction (anti-rebond) & 10mn si suite redémarrage disjoncteur
+# ACTION : Enregistre heure actuelle dans input_datetime.tv_salon_last_off
+# ------------------------------------------------------------
+- id: tv_salon_trace_extinction_tv
+  alias: "TV Salon - Trace extinction TV"
+  description: "Enregistre l'heure d'extinction de la TV (basé sur consommation)"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.salon_tv_home_cinema_power
+      below: 10
+      for:
+        seconds: 10
+  condition:
+    # Condition 1 : Disjoncteur ON
+    - condition: state
+      entity_id: switch.salon_tv_home_cinema
+      state: "on"
+    
+    # Condition 2 : PAS dans les 10 min après changement état disjoncteur
+    - condition: template
+      value_template: >
+        {% set disjoncteur_last_changed = as_timestamp(states.switch.salon_tv_home_cinema.last_changed) | default(0) %}
+        {% set now_ts = now().timestamp() %}
+        {% set minutes_since_change = ((now_ts - disjoncteur_last_changed) / 60) | int %}
+        {{ minutes_since_change > 10 }}
+    
+    # Condition 3 : Anti-rebond (60s entre deux enregistrements)
+    - condition: template
+      value_template: >
+        {% set last_off_str = states('input_datetime.tv_salon_last_off') %}
+        {% if last_off_str in ['unknown', 'unavailable'] %}
+          true
+        {% else %}
+          {% set last_off = as_timestamp(last_off_str) | default(0) %}
+          {% set now_ts = now().timestamp() %}
+          {{ (now_ts - last_off) > 60 }}
+        {% endif %}
+  action:
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.tv_salon_last_off
+      data:
+        datetime: "{{ now() }}"
+  mode: single
+
+# ============================================================
+# Trace coupure disjoncteur TV (manuelle ou automatique)
+# ============================================================
+- id: tv_salon_trace_coupure_disjoncteur_universelle
+  alias: "TV Salon - Trace coupure disjoncteur (universelle)"
+  description: "Enregistre toute coupure du disjoncteur TV (manuelle ou automatique)"
+  trigger:
+    - platform: state
+      entity_id: switch.salon_tv_home_cinema
+      to: "off"
+      from: "on"
+  action:
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.tv_salon_last_disjoncteur_tv_off
+      data:
+        datetime: "{{ now() }}"
+  mode: single
+# ============================================================
+
+# ============================================================
+# COUPURES AUTOMATIQUES
+# ============================================================
+
+# ============================================================
+# Coupure automatique TV (limite OU refroidissement)
+# ============================================================
+- id: tv_salon_coupure_automatique
+  alias: "TV Salon - Coupure automatique (limite ou refroidissement)"
+  description: "Coupe le disjoncteur à l'heure limite OU après refroidissement"
+  trigger:
+    - platform: time_pattern
+      minutes: "/5"
+  condition:
+    # Condition 1 : Coupure auto activée
+    - condition: state
+      entity_id: input_boolean.tv_salon_auto_coupure
+      state: "on"
+    
+    # Condition 2 : Disjoncteur ON
+    - condition: state
+      entity_id: switch.salon_tv_home_cinema
+      state: "on"
+    
+    # Condition 3 : TV éteinte
+    - condition: or
+      conditions:
+        - condition: state
+          entity_id: media_player.lg_webos_tv_oled77g54lw
+          state: "off"
+        - condition: state
+          entity_id: media_player.lg_webos_tv_oled77g54lw
+          state: "unavailable"
+    
+    # Condition 4 : Modes appropriés (PAS Vacances)
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    
+    # Condition 5 : last_off > last_on
+    - condition: template
+      value_template: >
+        {% set last_off = as_timestamp(states('input_datetime.tv_salon_last_off')) | default(0) %}
+        {% set last_on = as_timestamp(states('input_datetime.tv_salon_last_on')) | default(0) %}
+        {{ last_off > last_on }}
+    
+    # Condition 6 : (Après heure limite ET refroidissement écoulé)
+    - condition: template
+      value_template: >
+        {% set now_ts = now().timestamp() %}
+        {% set last_off = as_timestamp(states('input_datetime.tv_salon_last_off')) | default(0) %}
+        
+        {# Détermine l'heure limite selon le jour #}
+        {% set calendar_state = states('calendar.jours_feries_en_france') %}
+        {% set is_ferie = calendar_state == 'on' %}
+        
+        {% if now().weekday() in [4,5,6] or is_ferie %}
+          {% set heure_limite_str = states('input_datetime.tv_salon_heure_limite_weekend') %}
+        {% else %}
+          {% set heure_limite_str = states('input_datetime.tv_salon_heure_limite_semaine') %}
+        {% endif %}
+        
+        {# Convertit l'heure limite en timestamp #}
+        {% set heure_parts = heure_limite_str.split(':') %}
+        {% set heure_limite_today = now().replace(hour=heure_parts[0]|int, minute=heure_parts[1]|int, second=0, microsecond=0) %}
+        {% set heure_limite_ts = heure_limite_today.timestamp() %}
+        
+        {# Gère le passage de minuit #}
+        {% if now_ts < heure_limite_ts and last_off > 0 %}
+          {% set last_off_date = as_timestamp(states('input_datetime.tv_salon_last_off')) | timestamp_custom('%Y-%m-%d', true) %}
+          {% set today_date = now().strftime('%Y-%m-%d') %}
+          
+          {% if last_off_date != today_date %}
+            {% set yesterday = now() - timedelta(days=1) %}
+            {% set heure_limite_yesterday = yesterday.replace(hour=heure_parts[0]|int, minute=heure_parts[1]|int, second=0, microsecond=0) %}
+            {% set heure_limite_ts = heure_limite_yesterday.timestamp() %}
+          {% endif %}
+        {% endif %}
+        
+        {# Vérification des conditions de coupure #}
+        {% if now_ts >= heure_limite_ts %}
+          {# Après ou À l'heure limite → Vérifie refroidissement #}
+          {% set delai = states('input_number.tv_salon_delai_refroidissement') | float(60) %}
+          {% set minutes_depuis = ((now_ts - last_off) / 60) | int %}
+          {% set heures_depuis = minutes_depuis / 60 %}
+          
+          {# Coupe si refroidissement OK ET extinction < 12h #}
+          {{ minutes_depuis >= delai and heures_depuis < 12 }}
+        {% else %}
+          {# Avant heure limite → Pas de coupure #}
+          false
+        {% endif %}
+    
+    # Condition 7 : PAS DE RALLUMAGE RÉCENT (au moins 10 min)
+    - condition: template
+      value_template: >
+        {% set disjoncteur_last_changed = as_timestamp(states.switch.salon_tv_home_cinema.last_changed) %}
+        {% set now_ts = as_timestamp(now()) %}
+        {% set minutes_since_change = ((now_ts - disjoncteur_last_changed) / 60) | int %}
+        {{ minutes_since_change > 10 }}
+    
+    # Condition 8 : PAS DANS LA FENÊTRE PROTÉGÉE 06:00-08:00
+    - condition: template
+      value_template: >
+        {% set heure_actuelle = now().hour * 60 + now().minute %}
+        {% set debut_fenetre = 6 * 60 %}
+        {% set fin_fenetre = 8 * 60 %}
+        {{ heure_actuelle < debut_fenetre or heure_actuelle >= fin_fenetre }}
+    
+    # Condition 9 : EN MODE TÉLÉTRAVAIL/VACANCES MAISON/WEEKEND+ → PAS DE COUPURE AVANT HEURE LIMITE DU SOIR
+    - condition: template
+      value_template: >
+        {% set mode_teletravail = is_state('input_boolean.mode_planning_teletravail', 'on') %}
+        {% set mode_vacances_maison = is_state('input_boolean.mode_planning_vacances_maison', 'on') %}
+        {% set mode_weekend_prolonge = is_state('input_boolean.mode_planning_weekend_prolonge', 'on') %}
+        
+        {% if mode_teletravail or mode_vacances_maison or mode_weekend_prolonge %}
+          {# En mode actif → Vérifier qu'on est bien après l'heure limite du soir #}
+          {% set now_ts = now().timestamp() %}
+          {% set calendar_state = states('calendar.jours_feries_en_france') %}
+          {% set is_ferie = calendar_state == 'on' %}
+          
+          {% if now().weekday() in [4,5,6] or is_ferie %}
+            {% set heure_limite_str = states('input_datetime.tv_salon_heure_limite_weekend') %}
+          {% else %}
+            {% set heure_limite_str = states('input_datetime.tv_salon_heure_limite_semaine') %}
+          {% endif %}
+          
+          {% set heure_parts = heure_limite_str.split(':') %}
+          {% set heure_limite_today = now().replace(hour=heure_parts[0]|int, minute=heure_parts[1]|int, second=0, microsecond=0) %}
+          {% set heure_limite_ts = heure_limite_today.timestamp() %}
+          
+          {# Autoriser coupure UNIQUEMENT après heure limite du soir #}
+          {{ now_ts >= heure_limite_ts }}
+        {% else %}
+          {# Mode Normal → Pas de restriction supplémentaire #}
+          true
+        {% endif %}
+
+    # Condition 10 : EN MODE NORMAL WEEKEND/FÉRIÉ → PAS DE COUPURE AVANT HEURE LIMITE DU JOUR ACTUEL
+    - condition: template
+      value_template: >
+        {% set jour_semaine = now().weekday() %}
+        {% set est_ferie = is_state('calendar.jours_feries_en_france', 'on') %}
+        {% set est_weekend = (jour_semaine in [5, 6]) or est_ferie %}
+        
+        {% set mode_normal = is_state('input_boolean.chauffage_manuel', 'off') 
+                         and is_state('input_boolean.mode_vacances', 'off')
+                         and is_state('input_boolean.mode_planning_teletravail', 'off')
+                         and is_state('input_boolean.mode_planning_vacances_maison', 'off')
+                         and is_state('input_boolean.mode_planning_weekend_prolonge', 'off') %}
+        
+        {% if mode_normal and est_weekend %}
+          {# Mode Normal weekend/férié → Vérifier qu'on est après l'heure limite DU JOUR ACTUEL #}
+          {% set heure_limite_str = states('input_datetime.tv_salon_heure_limite_weekend') %}
+          {% set heure_parts = heure_limite_str.split(':') %}
+          {% set heure_actuelle = now().hour * 60 + now().minute %}
+          {% set heure_limite_minutes = heure_parts[0]|int * 60 + heure_parts[1]|int %}
+          
+          {# Si on est après minuit (00:00-05:59), considérer qu'on est après la limite de la veille #}
+          {% if heure_actuelle < 360 %}
+            true
+          {% else %}
+            {{ heure_actuelle >= heure_limite_minutes }}
+          {% endif %}
+        {% else %}
+          {# Autres modes/jours → Pas de restriction supplémentaire #}
+          true
+        {% endif %}
+        
+  action:
+    - service: switch.turn_off
+      target:
+        entity_id: switch.salon_tv_home_cinema
+    
+    - delay:
+        seconds: 2
+  
+  mode: single
+# ============================================================
+  
+# ============================================================
+# MODE VACANCES (ABSENCE)
+# ============================================================
+# ------------------------------------------------------------
+# Coupure départ vacances
+# ------------------------------------------------------------
+# TRIGGER : Passage en mode Vacances
+# CONDITIONS :
+#   1. Disjoncteur ON
+# ACTIONS :
+#   1. Coupe le disjoncteur immédiatement
+#   2. Enregistre heure coupure
+#   3. Envoie email "Bon voyage"
+# ------------------------------------------------------------
+- id: tv_salon_coupure_depart_vacances
+  alias: "TV Salon - Coupure disjoncteur TV - départ Vacances"
+  description: "Coupe immédiatement le disjoncteur TV au passage en mode Vacances"
+  trigger:
+    - platform: state
+      entity_id: input_boolean.mode_vacances
+      to: "on"
+  condition:
+    # Condition 1 : Disjoncteur ON
+    - condition: state
+      entity_id: switch.salon_tv_home_cinema
+      state: "on"
+  action:
+    # Action 1 : Coupe le disjoncteur
+    - service: switch.turn_off
+      target:
+        entity_id: switch.salon_tv_home_cinema
+    # Action 2 : Enregistre heure coupure
+    - service: input_datetime.set_datetime  # ← AJOUT
+      target:
+        entity_id: input_datetime.tv_salon_last_disjoncteur_tv_off
+      data:
+        datetime: "{{ now() }}"
+    # Action 3 : Envoie email
+    - service: notify.ha_email  # ← AJOUT NOTIFICATION
+      data:
+        title: "✈️ TV Salon - Mode Vacances immédiat activé"
+        message: >
+          Le disjoncteur TV a été coupé immédiatement suite au passage en mode Vacances.
+          Bon voyage ! 🏖️
+  mode: single
+
+# ============================================================
+# RALLUMAGE MATINAL
+# ============================================================
+
+# ------------------------------------------------------------
+# Rallumage matinal 06:00 (tous les jours sauf Vacances)
+# ------------------------------------------------------------
+# TRIGGER : 06:00 précises (configurable)
+# CONDITIONS :
+#   1. PAS en mode Vacances
+#   2. Disjoncteur OFF
+# ACTIONS :
+#   1. Rallume le disjoncteur
+#   2. Envoie email avec mode actif
+# ------------------------------------------------------------
+- id: tv_salon_rallumage_matinal_disjoncteur_tv
+  alias: "TV Salon - Rallumage matinal disjoncteur TV"
+  description: "Rallume le disjoncteur TV chaque matin sauf en mode Vacances"
+  trigger:
+    - platform: template
+      value_template: >
+        {{ now().strftime('%H:%M') == states('input_datetime.tv_salon_rallumage_matin')[0:5] }}
+  condition:
+    # Condition 1 : PAS en mode Vacances
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "off"
+    # Condition 2 : Disjoncteur OFF
+    - condition: state
+      entity_id: switch.salon_tv_home_cinema
+      state: "off"
+  action:
+    # Action 1 : Rallume le disjoncteur
+    - service: switch.turn_on
+      target:
+        entity_id: switch.salon_tv_home_cinema
+    # Action 2 : Envoie email
+    - service: notify.ha_email  # ← AJOUT NOTIFICATION
+      data:
+        title: "☀️ TV Salon - Rallumage matinal"
+        message: >
+            Le disjoncteur TV a été rallumé à {{ states('input_datetime.tv_salon_rallumage_matin')[0:5] }} comme prévu.
+            Mode : {% if is_state('input_boolean.mode_planning_normal', 'on') %}Planning Normal{% elif is_state('input_boolean.mode_planning_teletravail', 'on') %}Télétravail{% elif is_state('input_boolean.mode_planning_vacances_maison', 'on') %}Vacances Maison{% elif is_state('input_boolean.mode_planning_weekend_prolonge', 'on') %}Weekend+{% elif is_state('input_boolean.chauffage_manuel', 'on') %}Manuel{% else %}Autre{% endif %}
+  mode: single
+
+# ============================================================
+# COUPURES / RALLUMAGES JOURNÉE SEMAINE
+# ============================================================
+
+# ------------------------------------------------------------
+# Rallumage soir lundi
+# ------------------------------------------------------------
+# TRIGGER : Heure début soirée planning lundi
+# CONDITIONS :
+#   1. Coupure auto activée
+#   2. Disjoncteur OFF
+#   3. Mode Planning Normal OU Éco
+#   4. Lundi
+#   5. PAS jour férié
+# ACTIONS :
+#   1. Rallume le disjoncteur
+#   2. Envoie email
+# ------------------------------------------------------------
+- id: tv_salon_rallumage_soir_lundi
+  alias: "TV Salon - Rallumage soir lundi"
+  description: "Rallume le disjoncteur TV le lundi soir selon planning chauffage"
+  trigger:
+    - platform: template
+      value_template: >
+        {{ now().strftime('%H:%M') == states('input_datetime.planning_normal_lundi_soir_debut')[0:5] }}
+  condition:
+    # Condition 1 : Coupure auto activée
+    - condition: state
+      entity_id: input_boolean.tv_salon_auto_coupure
+      state: "on"
+    
+    # Condition 2 : Disjoncteur OFF
+    - condition: state
+      entity_id: switch.salon_tv_home_cinema
+      state: "off"
+    
+    # Condition 3 : Mode Planning Normal
+    - condition: state
+      entity_id: input_boolean.mode_planning_normal
+      state: "on"
+    
+    # Condition 4 : Lundi
+    - condition: time
+      weekday:
+        - mon
+    
+    # Condition 5 : PAS jour férié
+    - condition: template
+      value_template: >
+        {{ states('calendar.jours_feries_en_france') == 'off' }}
+  action:
+    # Action 1 : Rallume le disjoncteur
+    - service: switch.turn_on
+      target:
+        entity_id: switch.salon_tv_home_cinema
+    
+    # Action 2 : Envoie email
+    - service: notify.ha_email
+      data:
+        title: "🔆 TV Salon - Rallumage soir"
+        message: >
+            Le disjoncteur TV a été rallumé pour le soir (lundi {{ states('input_datetime.planning_normal_lundi_soir_debut')[0:5] }}).
+            Mode : Planning Normal
+  mode: single
+
+# ------------------------------------------------------------
+# Rallumage soir mardi
+# ------------------------------------------------------------
+# TRIGGER : Heure début soirée planning lundi
+# CONDITIONS :
+#   1. Coupure auto activée
+#   2. Disjoncteur OFF
+#   3. Mode Planning Normal OU Éco
+#   4. Mardi
+#   5. PAS jour férié
+# ACTIONS :
+#   1. Rallume le disjoncteur
+#   2. Envoie email
+# ------------------------------------------------------------
+- id: tv_salon_rallumage_soir_mardi
+  alias: "TV Salon - Rallumage soir mardi"
+  description: "Rallume le disjoncteur TV le mardi soir selon planning chauffage"
+  trigger:
+    - platform: template
+      value_template: >
+        {{ now().strftime('%H:%M') == states('input_datetime.planning_normal_mardi_soir_debut')[0:5] }}
+  condition:
+    # Condition 1 : Coupure auto activée
+    - condition: state
+      entity_id: input_boolean.tv_salon_auto_coupure
+      state: "on"
+
+    # Condition 2 : Disjoncteur OFF
+    - condition: state
+      entity_id: switch.salon_tv_home_cinema
+      state: "off"
+
+    # Condition 3 : Mode Planning Normal
+    - condition: state
+      entity_id: input_boolean.mode_planning_normal
+      state: "on"
+
+    # Condition 4 : Mardi      
+    - condition: time
+      weekday:
+        - tue
+
+    # Condition 5 : PAS jour férié
+    - condition: template
+      value_template: >
+        {{ states('calendar.jours_feries_en_france') == 'off' }}
+  action:
+    
+    # Action 1 : Rallume le disjoncteur
+    - service: switch.turn_on
+      target:
+        entity_id: switch.salon_tv_home_cinema
+
+    # Action 2 : Envoie email
+    - service: notify.ha_email
+      data:
+        title: "🔆 TV Salon - Rallumage soir"
+        message: >
+            Le disjoncteur TV a été rallumé pour le soir (mardi {{ states('input_datetime.planning_normal_mardi_soir_debut')[0:5] }}).
+            Mode : Planning Normal
+  mode: single
+
+# ------------------------------------------------------------
+# Rallumage soir mercredi
+# ------------------------------------------------------------
+# TRIGGER : Heure début soirée planning lundi
+# CONDITIONS :
+#   1. Coupure auto activée
+#   2. Disjoncteur OFF
+#   3. Mode Planning Normal OU Éco
+#   4. Mercredi
+#   5. PAS jour férié
+# ACTIONS :
+#   1. Rallume le disjoncteur
+#   2. Envoie email
+# ------------------------------------------------------------
+- id: tv_salon_rallumage_soir_mercredi
+  alias: "TV Salon - Rallumage soir mercredi"
+  description: "Rallume le disjoncteur TV le mercredi soir selon planning chauffage"
+  trigger:
+    - platform: template
+      value_template: >
+        {{ now().strftime('%H:%M') == states('input_datetime.planning_normal_mercredi_soir_debut')[0:5] }}
+  condition:
+    # Condition 1 : Coupure auto activée
+    - condition: state
+      entity_id: input_boolean.tv_salon_auto_coupure
+      state: "on"
+
+    # Condition 2 : Disjoncteur OFF
+    - condition: state
+      entity_id: switch.salon_tv_home_cinema
+      state: "off"
+
+    # Condition 3 : Mode Planning Normal
+    - condition: state
+      entity_id: input_boolean.mode_planning_normal
+      state: "on"
+
+    # Condition 4 : Mercredi      
+    - condition: time
+      weekday:
+        - wed
+
+    # Condition 5 : PAS jour férié
+    - condition: template
+      value_template: >
+        {{ states('calendar.jours_feries_en_france') == 'off' }}
+
+  action:
+    
+    # Action 1 : Rallume le disjoncteur
+    - service: switch.turn_on
+      target:
+        entity_id: switch.salon_tv_home_cinema
+
+    # Action 2 : Envoie email
+    - service: notify.ha_email
+      data:
+        title: "🔆 TV Salon - Rallumage soir"
+        message: >
+            Le disjoncteur TV a été rallumé pour le soir (mercredi {{ states('input_datetime.planning_normal_mercredi_soir_debut')[0:5] }}).
+            Mode : Planning Normal
+  mode: single
+
+# ------------------------------------------------------------
+# Rallumage soir jeudi
+# ------------------------------------------------------------
+# TRIGGER : Heure début soirée planning lundi
+# CONDITIONS :
+#   1. Coupure auto activée
+#   2. Disjoncteur OFF
+#   3. Mode Planning Normal OU Éco
+#   4. Jeudi
+#   5. PAS jour férié
+# ACTIONS :
+#   1. Rallume le disjoncteur
+#   2. Envoie email
+# ------------------------------------------------------------
+- id: tv_salon_rallumage_soir_jeudi
+  alias: "TV Salon - Rallumage soir jeudi"
+  description: "Rallume le disjoncteur TV le jeudi soir selon planning chauffage"
+  trigger:
+    - platform: template
+      value_template: >
+        {{ now().strftime('%H:%M') == states('input_datetime.planning_normal_jeudi_soir_debut')[0:5] }}
+  condition:
+    # Condition 1 : Coupure auto activée
+    - condition: state
+      entity_id: input_boolean.tv_salon_auto_coupure
+      state: "on"
+
+    # Condition 2 : Disjoncteur OFF
+    - condition: state
+      entity_id: switch.salon_tv_home_cinema
+      state: "off"
+
+    # Condition 3 : Mode Planning Normal
+    - condition: state
+      entity_id: input_boolean.mode_planning_normal
+      state: "on"
+ 
+     # Condition 4 : Jeudi     
+    - condition: time
+      weekday:
+        - thu
+
+    # Condition 5 : PAS jour férié
+    - condition: template
+      value_template: >
+        {{ states('calendar.jours_feries_en_france') == 'off' }}
+  action:
+
+    # Action 1 : Rallume le disjoncteur
+    - service: switch.turn_on
+      target:
+        entity_id: switch.salon_tv_home_cinema
+
+    # Action 2 : Envoie email
+    - service: notify.ha_email
+      data:
+        title: "🔆 TV Salon - Rallumage soir"
+        message: >
+            Le disjoncteur TV a été rallumé pour le soir (jeudi {{ states('input_datetime.planning_normal_jeudi_soir_debut')[0:5] }}).
+            Mode : Planning Normal
+  mode: single
+
+# ------------------------------------------------------------
+# Rallumage soir vendredi
+# ------------------------------------------------------------
+# TRIGGER : Heure début soirée planning lundi
+# CONDITIONS :
+#   1. Coupure auto activée
+#   2. Disjoncteur OFF
+#   3. Mode Planning Normal OU Éco
+#   4. Vendredi
+#   5. PAS jour férié
+# ACTIONS :
+#   1. Rallume le disjoncteur
+#   2. Envoie email
+# ------------------------------------------------------------
+- id: tv_salon_rallumage_soir_vendredi
+  alias: "TV Salon - Rallumage soir vendredi"
+  description: "Rallume le disjoncteur TV le vendredi soir selon planning chauffage"
+  trigger:
+    - platform: template
+      value_template: >
+        {{ now().strftime('%H:%M') == states('input_datetime.planning_normal_vendredi_soir_debut')[0:5] }}
+  condition:
+    # Condition 1 : Coupure auto activée
+    - condition: state
+      entity_id: input_boolean.tv_salon_auto_coupure
+      state: "on"
+
+    # Condition 2 : Disjoncteur OFF
+    - condition: state
+      entity_id: switch.salon_tv_home_cinema
+      state: "off"
+
+    # Condition 3 : Mode Planning Normal
+    - condition: state
+      entity_id: input_boolean.mode_planning_normal
+      state: "on"
+ 
+     # Condition 4 : Vendredi
+    - condition: time
+      weekday:
+        - fri
+
+    # Condition 5 : PAS jour férié
+    - condition: template
+      value_template: >
+        {{ states('calendar.jours_feries_en_france') == 'off' }}
+  action:
+
+    # Action 1 : Rallume le disjoncteur
+    - service: switch.turn_on
+      target:
+        entity_id: switch.salon_tv_home_cinema
+
+    # Action 2 : Envoie email
+    - service: notify.ha_email
+      data:
+        title: "🔆 TV Salon - Rallumage soir"
+        message: >
+            Le disjoncteur TV a été rallumé pour le soir (vendredi {{ states('input_datetime.planning_normal_vendredi_soir_debut')[0:5] }}).
+            Mode : Planning Normal
+  mode: single
+
+# ============================================================
+# Rallumage immédiat si passage vers mode sans coupure journée
+# ============================================================
+# MODES CONCERNÉS : Télétravail, Weekend+, Vacances Maison, Manuel
+# LOGIQUE : Si on passe vers un de ces modes pendant la journée,
+#           on rallume immédiatement le disjoncteur (car pas de coupure journée)
+# ============================================================
+- id: tv_salon_rallumage_changement_mode_sans_coupure
+  alias: "TV Salon - Rallumage changement vers mode sans coupure journée"
+  description: "Rallume le disjoncteur si passage vers Télétravail/Weekend+/Vacances Maison/Manuel"
+  trigger:
+    # Trigger 1 : Passage en Télétravail
+    - platform: state
+      entity_id: input_boolean.mode_planning_teletravail
+      to: "on"
+    
+    # Trigger 2 : Passage en Weekend+
+    - platform: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      to: "on"
+    
+    # Trigger 3 : Passage en Vacances Maison
+    - platform: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      to: "on"
+    
+    # Trigger 4 : Passage en Manuel
+    - platform: state
+      entity_id: input_boolean.chauffage_manuel
+      to: "on"
+  condition:
+    # Condition 1 : Disjoncteur OFF
+    - condition: state
+      entity_id: switch.salon_tv_home_cinema
+      state: "off"
+    
+    # Condition 2 : Lundi-Vendredi (car weekend déjà pas de coupure journée)
+    - condition: time
+      weekday:
+        - mon
+        - tue
+        - wed
+        - thu
+        - fri
+    
+    # Condition 3 : Pas jour férié
+    - condition: template
+      value_template: >
+        {{ states('calendar.jours_feries_en_france') == 'off' }}
+    
+    # Condition 4 : Entre 08:00 et heure rallumage soir (période où le disjoncteur serait normalement coupé en Planning Normal)
+    - condition: template
+      value_template: >
+        {% set now_time = now().strftime('%H:%M') %}
+        {% set day_name = now().strftime('%A').lower() %}
+        
+        {# Détermine l'heure de rallumage soir selon le jour #}
+        {% if day_name == 'monday' %}
+          {% set heure_rallumage = states('input_datetime.planning_normal_lundi_soir_debut')[0:5] %}
+        {% elif day_name == 'tuesday' %}
+          {% set heure_rallumage = states('input_datetime.planning_normal_mardi_soir_debut')[0:5] %}
+        {% elif day_name == 'wednesday' %}
+          {% set heure_rallumage = states('input_datetime.planning_normal_mercredi_soir_debut')[0:5] %}
+        {% elif day_name == 'thursday' %}
+          {% set heure_rallumage = states('input_datetime.planning_normal_jeudi_soir_debut')[0:5] %}
+        {% elif day_name == 'friday' %}
+          {% set heure_rallumage = states('input_datetime.planning_normal_vendredi_soir_debut')[0:5] %}
+        {% endif %}
+        
+        {{ now_time >= '08:00' and now_time < heure_rallumage }}
+  action:
+    # Action 1 : Rallume le disjoncteur
+    - service: switch.turn_on
+      target:
+        entity_id: switch.salon_tv_home_cinema
+    
+    # Action 2 : Envoie email
+    - service: notify.ha_email
+      data:
+        title: "🏠 TV Salon - Changement mode planning"
+        message: >
+          Le disjoncteur TV a été rallumé suite au changement de mode planning.
+          Nouveau mode : {% if is_state('input_boolean.mode_planning_teletravail', 'on') %}Télétravail{% elif is_state('input_boolean.mode_planning_weekend_prolonge', 'on') %}Weekend+{% elif is_state('input_boolean.mode_planning_vacances_maison', 'on') %}Vacances Maison{% elif is_state('input_boolean.chauffage_manuel', 'on') %}Manuel{% else %}Inconnu{% endif %}
+  mode: single
+
+# ============================================================
+# Coupure si passage vers Planning Normal avant rallumage soir
+# ============================================================
+# LOGIQUE : Si on passe en Planning Normal pendant la journée,
+#           ET qu'il reste plus de 30 min avant l'heure de rallumage soir,
+#           on coupe le disjoncteur (départ au travail tardif)
+# ============================================================
+- id: tv_salon_coupure_changement_vers_planning_normal
+  alias: "TV Salon - Coupure changement vers Planning Normal"
+  description: "Coupe le disjoncteur si passage vers Planning Normal >30min avant rallumage soir"
+  trigger:
+    - platform: state
+      entity_id: input_boolean.mode_planning_normal
+      to: "on"
+  condition:
+    # Condition 1 : Disjoncteur ON
+    - condition: state
+      entity_id: switch.salon_tv_home_cinema
+      state: "on"
+    
+    # Condition 2 : Lundi-Jeudi
+    - condition: time
+      weekday:
+        - mon
+        - tue
+        - wed
+        - thu
+    
+    # Condition 3 : Pas jour férié
+    - condition: template
+      value_template: >
+        {{ states('calendar.jours_feries_en_france') == 'off' }}
+    
+    # Condition 4 : Plus de 30 min avant l'heure de rallumage soir
+    - condition: template
+      value_template: >
+        {% set now_time = now() %}
+        {% set day_name = now_time.strftime('%A').lower() %}
+        
+        {# Détermine l'heure de rallumage soir selon le jour #}
+        {% if day_name == 'monday' %}
+          {% set heure_rallumage_str = states('input_datetime.planning_normal_lundi_soir_debut') %}
+        {% elif day_name == 'tuesday' %}
+          {% set heure_rallumage_str = states('input_datetime.planning_normal_mardi_soir_debut') %}
+        {% elif day_name == 'wednesday' %}
+          {% set heure_rallumage_str = states('input_datetime.planning_normal_mercredi_soir_debut') %}
+        {% elif day_name == 'thursday' %}
+          {% set heure_rallumage_str = states('input_datetime.planning_normal_jeudi_soir_debut') %}
+        {% elif day_name == 'friday' %}
+          {% set heure_rallumage_str = states('input_datetime.planning_normal_vendredi_soir_debut') %}
+        {% endif %}
+        
+        {# Convertit l'heure de rallumage en timestamp #}
+        {% set heure_parts = heure_rallumage_str.split(':') %}
+        {% set heure_rallumage = now_time.replace(hour=heure_parts[0]|int, minute=heure_parts[1]|int, second=0) %}
+        
+        {# Calcule la différence en minutes #}
+        {% set minutes_avant_rallumage = ((heure_rallumage.timestamp() - now_time.timestamp()) / 60) | int %}
+        
+        {# Vérifie qu'il reste plus de 30 minutes #}
+        {{ minutes_avant_rallumage > 30 }}
+  action:
+    # Action 1 : Attend le refroidissement AVANT de couper
+    - wait_template: >
+        {% set last_off = as_timestamp(states('input_datetime.tv_salon_last_off')) | default(0) %}
+        {% set last_on = as_timestamp(states('input_datetime.tv_salon_last_on')) | default(0) %}
+        {% set now_ts = now().timestamp() %}
+        
+        {# Vérifie que la TV est éteinte #}
+        {% set tv_off = is_state('media_player.lg_webos_tv_oled77g54lw', 'off') or is_state('media_player.lg_webos_tv_oled77g54lw', 'unavailable') %}
+        
+        {# Vérifie que last_off > last_on #}
+        {% set last_off_after_on = last_off > last_on %}
+        
+        {# Vérifie le délai de refroidissement #}
+        {% set delai = states('input_number.tv_salon_delai_refroidissement') | float(60) %}
+        {% set minutes_depuis = ((now_ts - last_off) / 60) | int %}
+        {% set refroidissement_ok = minutes_depuis >= delai %}
+        
+        {{ tv_off and last_off_after_on and refroidissement_ok }}
+      timeout: "02:00:00"  # Attend maximum 2h
+      continue_on_timeout: false
+    
+    # Action 2 : Coupe le disjoncteur
+    - service: switch.turn_off
+      target:
+        entity_id: switch.salon_tv_home_cinema
+    
+    # Action 3 : Enregistre heure coupure
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.tv_salon_last_disjoncteur_tv_off
+      data:
+        datetime: "{{ now() }}"
+    
+    # Action 4 : Envoie email
+    - service: notify.ha_email
+      data:
+        title: "🔌 TV Salon - Coupure changement Planning Normal"
+        message: >
+          Le disjoncteur TV a été coupé suite au passage en mode Planning Normal.
+          TV éteinte et refroidissement terminé.
+  mode: single
+  
+# ------------------------------------------------------------
+# Vérification quotidienne vacances
+# ------------------------------------------------------------
+# TRIGGER : 02:00 chaque jour
+# CONDITIONS :
+#   1. Mode Vacances actif
+#   2. Disjoncteur ON (anormal)
+# ACTIONS :
+#   1. Coupe le disjoncteur
+#   2. Enregistre heure coupure
+#   3. Envoie email d'alerte
+# ------------------------------------------------------------
+- id: tv_salon_verification_quotidienne_vacances
+  alias: "TV Salon - Vérification quotidienne mode Vacances"
+  description: "Vérifie que le disjoncteur TV est bien coupé chaque jour en mode Vacances"
+  trigger:
+    - platform: time
+      at: "02:00:00"
+  condition:
+    # Condition 1 : Mode Vacances
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "on"
+    # Condition 2 : Disjoncteur ON (ne devrait pas)
+    - condition: state
+      entity_id: switch.salon_tv_home_cinema
+      state: "on"
+  action:
+    # Action 1 : Coupe le disjoncteur
+    - service: switch.turn_off
+      target:
+        entity_id: switch.salon_tv_home_cinema
+    # Action 2 : Enregistre heure coupure
+    - service: input_datetime.set_datetime  # ← AJOUT
+      target:
+        entity_id: input_datetime.tv_salon_last_disjoncteur_tv_off
+      data:
+        datetime: "{{ now() }}"
+    # Action 3 : Envoie email d'alerte
+    - service: notify.ha_email  # ← AJOUT NOTIFICATION
+      data:
+        title: "✈️ TV Salon - Mode Vacances activé"
+        message: >
+          Le disjoncteur TV a été coupé suite au passage en mode Vacances.
+          Bon voyage ! 🏖️
+  mode: single
+
+# ------------------------------------------------------------
+# Rallumage retour vacances
+# ------------------------------------------------------------
+# TRIGGER : Sortie du mode Vacances (vers n'importe quel autre mode)
+# CONDITIONS :
+#   1. Disjoncteur OFF
+# ACTIONS :
+#   1. Rallume le disjoncteur
+#   2. Envoie email "Bon retour"
+# ------------------------------------------------------------
+- id: tv_salon_rallumage_retour_vacances
+  alias: "TV Salon - Rallumage disjoncteur TV retour Vacances"
+  description: "Rallume le disjoncteur TV au retour de vacances"
+  trigger:
+    - platform: state
+      entity_id: input_boolean.mode_vacances
+      to: "off"
+  condition:
+    - condition: state
+      entity_id: switch.salon_tv_home_cinema
+      state: "off"
+  action:
+    - service: switch.turn_on
+      target:
+        entity_id: switch.salon_tv_home_cinema
+    - service: notify.ha_email  # ← AJOUT NOTIFICATION
+      data:
+        title: "🏠 TV Salon - Retour de vacances"
+        message: >
+          Le disjoncteur TV a été rallumé automatiquement.
+          Bon retour ! 😊
+          Mode actuel : {% if is_state('input_boolean.mode_planning_normal', 'on') %}Planning Normal{% elif is_state('input_boolean.mode_planning_teletravail', 'on') %}Télétravail{% elif is_state('input_boolean.mode_planning_vacances_maison', 'on') %}Vacances Maison{% elif is_state('input_boolean.mode_planning_weekend_prolonge', 'on') %}Weekend+{% elif is_state('input_boolean.chauffage_manuel', 'on') %}Manuel{% else %}Autre{% endif %}
+  mode: single
+# ============================================================
+
+# ============================================================

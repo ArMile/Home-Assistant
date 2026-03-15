@@ -1,0 +1,92 @@
+# ============================================================
+# TV SALON - HELPERS
+# Gestion disjoncteur TV OLED + coupures automatiques
+# Switch : switch.salon_tv_home_cinema
+# Media player : media_player.lg_webos_tv_oled77g54lw
+# ============================================================
+
+input_number:
+
+  tv_salon_delai_refroidissement:
+    name: "TV Salon - Délai refroidissement OLED (minutes)"
+    min: 30
+    max: 120
+    step: 10
+    unit_of_measurement: "min"
+    icon: mdi:timer-sand
+
+input_boolean:
+
+  tv_salon_auto_coupure:
+    name: "TV Salon - Coupure automatique active"
+    icon: mdi:power-sleep
+
+input_datetime:
+
+  tv_salon_last_on:
+    name: "TV Salon - Dernier allumage"
+    has_date: true
+    has_time: true
+
+  tv_salon_last_off:
+    name: "TV Salon - Dernière extinction"
+    has_date: true
+    has_time: true
+
+  tv_salon_last_disjoncteur_tv_off:
+    name: "TV Salon - Dernière coupure disjoncteur TV"
+    has_date: true
+    has_time: true
+
+  tv_salon_heure_limite_semaine:
+    name: "TV Salon - Heure limite semaine"
+    has_date: false
+    has_time: true
+
+  tv_salon_heure_limite_weekend:
+    name: "TV Salon - Heure limite weekend"
+    has_date: false
+    has_time: true
+
+  tv_salon_rallumage_matin:
+    name: "TV Salon - Heure rallumage matin"
+    has_date: false
+    has_time: true
+
+template:
+  - binary_sensor:
+      - name: "TV Salon - Réellement ON"
+        unique_id: tv_salon_reellement_on
+        device_class: power
+        state: >
+          {{ states('sensor.salon_tv_home_cinema_power') | float(0) > 50 }}
+        availability: >
+          {{ states('sensor.salon_tv_home_cinema_power') not in ['unknown', 'unavailable'] }}
+        icon: >
+          {% if states('sensor.salon_tv_home_cinema_power') | float(0) > 50 %}
+            mdi:television
+          {% else %}
+            mdi:television-off
+          {% endif %}
+
+utility_meter:
+
+  tv_salon_conso_journaliere:
+    source: sensor.salon_tv_home_cinema_energy
+    name: "TV Salon - Conso Journalière"
+    cycle: daily
+
+  tv_salon_conso_hebdomadaire:
+    source: sensor.salon_tv_home_cinema_energy
+    name: "TV Salon - Conso Hebdomadaire"
+    cycle: weekly
+
+  tv_salon_conso_mensuelle:
+    source: sensor.salon_tv_home_cinema_energy
+    name: "TV Salon - Conso Mensuelle"
+    cycle: monthly
+
+  tv_salon_conso_annuelle:
+    source: sensor.salon_tv_home_cinema_energy
+    name: "TV Salon - Conso Annuelle"
+    cycle: yearly

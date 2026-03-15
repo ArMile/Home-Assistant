@@ -1,0 +1,41 @@
+# ============================================================
+# TV SALON - SENSORS (platform: history_stats)
+# Temps de fonctionnement réel de la TV
+# Basé sur binary_sensor.tv_salon_reellement_on (seuil > 50W)
+# ============================================================
+
+- platform: history_stats
+  name: "TV Salon - Temps ON aujourd'hui"
+  unique_id: tv_salon_temps_on_aujourdhui
+  entity_id: binary_sensor.tv_salon_reellement_on
+  state: "on"
+  type: time
+  start: "{{ now().replace(hour=0, minute=0, second=0) }}"
+  end: "{{ now() }}"
+
+- platform: history_stats
+  name: "TV Salon - Temps ON semaine"
+  unique_id: tv_salon_temps_on_semaine
+  entity_id: binary_sensor.tv_salon_reellement_on
+  state: "on"
+  type: time
+  start: "{{ as_timestamp(now().replace(hour=0, minute=0, second=0)) - now().weekday() * 86400 }}"
+  end: "{{ now() }}"
+
+- platform: history_stats
+  name: "TV Salon - Temps ON mois"
+  unique_id: tv_salon_temps_on_mois
+  entity_id: binary_sensor.tv_salon_reellement_on
+  state: "on"
+  type: time
+  start: "{{ now().replace(day=1, hour=0, minute=0, second=0) }}"
+  end: "{{ now() }}"
+
+- platform: history_stats
+  name: "TV Salon - Temps ON année"
+  unique_id: tv_salon_temps_on_annee
+  entity_id: binary_sensor.tv_salon_reellement_on
+  state: "on"
+  type: time
+  start: "{{ now().replace(month=1, day=1, hour=0, minute=0, second=0) }}"
+  end: "{{ now() }}"
