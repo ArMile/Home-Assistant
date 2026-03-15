@@ -232,7 +232,7 @@ views:
           camera: camera.x50_ultra_complete_map
         calibration_source:
           camera: true
-        title: RDC Vennecy
+        title: RDC xxxxxxxx
         map_modes:
           - template: vacuum_clean_segment
             predefined_selections:

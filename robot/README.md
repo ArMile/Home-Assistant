@@ -1,1 +1,33 @@
 # Robot Dreame X50
+
+Pilotage du Robot via extention HACS "Dreame vacuum integration for Home Assistant"
+/!\ ATTENTION /!\ : Utilisez la version Beta
+
+Permet de gérer presque tous les paramètres comme depuis application.
+
+Activation auto quand alarme enclenchée ou manuel. Choix du nettoyage complet ou selon les pièces sélectionnées et dans l'ordre de sélection
+
+Reste encore à faire : aspiration seule / Apsiration puis lavage / Aspiration ET lavage / etc...)
+
+
+![Dashboard : Contrôles"](screenshots/dashboard-dreame_Controle.png)
+![Dashboard : Pièces"](screenshots/dashboard-dreame_Controle.png)
+![Dashboard : Entretien"](screenshots/dashboard-dreame_Controle.png)
+![Dashboard : Statistiques"](screenshots/dashboard-dreame_Controle.png)
+![Dashboard : Paramètres"](screenshots/dashboard-dreame_Controle.png)
+
+Le dossier contient :
+- `helpers.yaml` — helpers HA (input_number, input_boolean, input_datetime, template sensors)
+- `automations.yaml` — automations liées à cette fonctionnalité
+- `dashboard.yaml` — Code YAML du dashboard 
+- `scripts.yaml` — scripts
+- `README.md` — documentation spécifique
+
+## Dashboards
+Utilisation des extentions HACS suivantes dans mes dashboards :
+- Mushroom
+- Lovelace Mini Graph Card
+- Button Card by @RomRider
+- card-mod 4
+- layout-card
+- template-entity-row

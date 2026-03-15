@@ -1,0 +1,153 @@
+# ============================================================
+# ROBOT DREAME X50 ULTRA - HELPERS
+# Intégration via HACS Dreame Vacuum (auth directe)
+# Room IDs : Salon=1, Cuisine=2 (Kitchen=6), SdB=3, Bureau=5,
+#            Entrée=4 (recreation_area), SàM=6 (dining_hall=2)
+# ============================================================
+
+input_number:
+
+  robot_ordre_meeting_room:
+    name: "Robot - Ordre Salon"
+    min: 0
+    max: 6
+    step: 1
+    mode: box
+    icon: mdi:presentation
+
+  robot_ordre_kitchen:
+    name: "Robot - Ordre Cuisine"
+    min: 0
+    max: 6
+    step: 1
+    mode: box
+    icon: mdi:chef-hat
+
+  robot_ordre_bathroom:
+    name: "Robot - Ordre Salle de Bain"
+    min: 0
+    max: 6
+    step: 1
+    mode: box
+    icon: mdi:toilet
+
+  robot_ordre_office:
+    name: "Robot - Ordre Bureau"
+    min: 0
+    max: 6
+    step: 1
+    mode: box
+    icon: mdi:monitor-shimmer
+
+  robot_ordre_recreation_area:
+    name: "Robot - Ordre Entrée / Couloir"
+    min: 0
+    max: 6
+    step: 1
+    mode: box
+    icon: mdi:sofa-outline
+
+  robot_ordre_dining_hall:
+    name: "Robot - Salle à Manger"
+    min: 0
+    max: 6
+    step: 1
+    mode: box
+    icon: mdi:room-service-outline
+
+input_boolean:
+
+  robot_auto_enable:
+    name: "Robot - Lancement automatique"
+    icon: mdi:robot-vacuum-variant
+
+  robot_deja_lance_aujourdhui:
+    name: "Robot déjà lancé aujourd'hui"
+    icon: mdi:counter
+
+  robot_piece_meeting_room:
+    name: "Robot - Salon"
+    icon: mdi:presentation
+
+  robot_piece_dining_room:
+    name: "Robot - Salle à Manger"
+    icon: mdi:sofa-outline
+
+  robot_piece_bathroom:
+    name: "Robot - Salle de Bain"
+    icon: mdi:toilet
+
+  robot_piece_recreation_area:
+    name: "Robot - Entrée / Couloir"
+    icon: mdi:room-service-outline
+
+  robot_piece_office:
+    name: "Robot - Bureau"
+    icon: mdi:monitor-shimmer
+
+  robot_piece_kitchen:
+    name: "Robot - Cuisine"
+    icon: mdi:chef-hat
+
+input_datetime:
+
+  robot_heure_debut:
+    name: "Robot - Heure début"
+    has_date: false
+    has_time: true
+
+  robot_heure_fin:
+    name: "Robot - Heure fin"
+    has_date: false
+    has_time: true
+
+input_select:
+
+  robot_mode_nettoyage:
+    name: "Robot - Mode de nettoyage"
+    options:
+      - "Nettoyage complet"
+      - "Pièces sélectionnées"
+    icon: mdi:floor-plan
+
+template:
+  - sensor:
+      - name: "Robot - Segments sélectionnés"
+        unique_id: robot_segments_selectionnes
+        state: >
+          {% set rooms = [
+            {'id': 6, 'name': 'Cuisine', 'ordre': states('input_number.robot_ordre_kitchen') | int},
+            {'id': 2, 'name': 'Salle à Manger', 'ordre': states('input_number.robot_ordre_dining_hall') | int},
+            {'id': 4, 'name': 'Entrée / Couloir', 'ordre': states('input_number.robot_ordre_recreation_area') | int},
+            {'id': 1, 'name': 'Salon', 'ordre': states('input_number.robot_ordre_meeting_room') | int},
+            {'id': 5, 'name': 'Bureau', 'ordre': states('input_number.robot_ordre_office') | int},
+            {'id': 3, 'name': 'Salle de Bain', 'ordre': states('input_number.robot_ordre_bathroom') | int}
+          ] %}
+          {% set selected_rooms = rooms | selectattr('ordre', 'gt', 0) | sort(attribute='ordre') | list %}
+          {% set segments = selected_rooms | map(attribute='id') | list %}
+          {{ segments | join(',') }}
+        attributes:
+          segments_list: >
+            {% set rooms = [
+              {'id': 6, 'name': 'Cuisine', 'ordre': states('input_number.robot_ordre_kitchen') | int},
+              {'id': 2, 'name': 'Salle à Manger', 'ordre': states('input_number.robot_ordre_dining_hall') | int},
+              {'id': 4, 'name': 'Entrée / Couloir', 'ordre': states('input_number.robot_ordre_recreation_area') | int},
+              {'id': 1, 'name': 'Salon', 'ordre': states('input_number.robot_ordre_meeting_room') | int},
+              {'id': 5, 'name': 'Bureau', 'ordre': states('input_number.robot_ordre_office') | int},
+              {'id': 3, 'name': 'Salle de Bain', 'ordre': states('input_number.robot_ordre_bathroom') | int}
+            ] %}
+            {% set selected_rooms = rooms | selectattr('ordre', 'gt', 0) | sort(attribute='ordre') | list %}
+            {% set segments = selected_rooms | map(attribute='id') | list %}
+            {{ segments }}
+          pieces_selectionnees: >
+            {% set rooms = [
+              {'id': 6, 'name': 'Cuisine', 'ordre': states('input_number.robot_ordre_kitchen') | int},
+              {'id': 2, 'name': 'Salle à Manger', 'ordre': states('input_number.robot_ordre_dining_hall') | int},
+              {'id': 4, 'name': 'Entrée / Couloir', 'ordre': states('input_number.robot_ordre_recreation_area') | int},
+              {'id': 1, 'name': 'Salon', 'ordre': states('input_number.robot_ordre_meeting_room') | int},
+              {'id': 5, 'name': 'Bureau', 'ordre': states('input_number.robot_ordre_office') | int},
+              {'id': 3, 'name': 'Salle de Bain', 'ordre': states('input_number.robot_ordre_bathroom') | int}
+            ] %}
+            {% set selected_rooms = rooms | selectattr('ordre', 'gt', 0) | sort(attribute='ordre') | list %}
+            {% set names = selected_rooms | map(attribute='name') | list %}
+            {{ names | join(' → ') }}

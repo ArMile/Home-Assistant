@@ -1,0 +1,103 @@
+robot_selectionner_piece:
+  alias: "Robot - Sélectionner une pièce"
+  description: "Ajoute une pièce à la liste de nettoyage dans l'ordre"
+  fields:
+    piece:
+      description: "Nom de la pièce (kitchen, dining_hall, recreation_area, meeting_room, office, bathroom)"
+      example: "kitchen"
+  sequence:
+    - variables:
+        entity_map:
+          kitchen: input_number.robot_ordre_kitchen
+          dining_hall: input_number.robot_ordre_dining_hall
+          recreation_area: input_number.robot_ordre_recreation_area
+          meeting_room: input_number.robot_ordre_meeting_room
+          office: input_number.robot_ordre_office
+          bathroom: input_number.robot_ordre_bathroom
+        current_max: >
+          {% set ordres = [
+            states('input_number.robot_ordre_kitchen') | int,
+            states('input_number.robot_ordre_dining_hall') | int,
+            states('input_number.robot_ordre_recreation_area') | int,
+            states('input_number.robot_ordre_meeting_room') | int,
+            states('input_number.robot_ordre_office') | int,
+            states('input_number.robot_ordre_bathroom') | int
+          ] %}
+          {{ ordres | max }}
+    - service: input_number.set_value
+      target:
+        entity_id: "{{ entity_map[piece] }}"
+      data:
+        value: "{{ current_max + 1 }}"
+
+robot_deselectionner_piece:
+  alias: "Robot - Désélectionner une pièce"
+  description: "Retire une pièce et réorganise les ordres"
+  fields:
+    piece:
+      description: "Nom de la pièce"
+      example: "kitchen"
+  sequence:
+    - variables:
+        entity_map:
+          kitchen: input_number.robot_ordre_kitchen
+          dining_hall: input_number.robot_ordre_dining_hall
+          recreation_area: input_number.robot_ordre_recreation_area
+          meeting_room: input_number.robot_ordre_meeting_room
+          office: input_number.robot_ordre_office
+          bathroom: input_number.robot_ordre_bathroom
+        piece_entity: "{{ entity_map[piece] }}"
+        removed_ordre: "{{ states(piece_entity) | int }}"
+    - service: input_number.set_value
+      target:
+        entity_id: "{{ piece_entity }}"
+      data:
+        value: 0
+    # Réorganiser les ordres supérieurs
+    - repeat:
+        for_each:
+          - input_number.robot_ordre_kitchen
+          - input_number.robot_ordre_dining_hall
+          - input_number.robot_ordre_recreation_area
+          - input_number.robot_ordre_meeting_room
+          - input_number.robot_ordre_office
+          - input_number.robot_ordre_bathroom
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ states(repeat.item) | int > removed_ordre }}"
+            then:
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ repeat.item }}"
+                data:
+                  value: "{{ states(repeat.item) | int - 1 }}"
+
+robot_reinitialiser_pieces:
+  alias: "Robot - Réinitialiser toutes les pièces"
+  description: "Désélectionne toutes les pièces"
+  sequence:
+    - service: input_number.set_value
+      target:
+        entity_id:
+          - input_number.robot_ordre_kitchen
+          - input_number.robot_ordre_dining_hall
+          - input_number.robot_ordre_recreation_area
+          - input_number.robot_ordre_meeting_room
+          - input_number.robot_ordre_office
+          - input_number.robot_ordre_bathroom
+      data:
+        value: 0
+
+robot_lancement_manuel:
+  alias: "Robot - Lancement manuel"
+  description: "Lance le nettoyage des pièces sélectionnées manuellement"
+  sequence:
+    - service: dreame_vacuum.vacuum_clean_segment
+      data:
+        entity_id: vacuum.x50_ultra_complete
+        segments: "{{ state_attr('sensor.robot_segments_selectionnes', 'segments_list') }}"
+# =================================================================
+
+
+

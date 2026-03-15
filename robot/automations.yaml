@@ -1,0 +1,68 @@
+# 18. ROBOT DREAME X50
+# ============================================================
+# ============================================================
+# GESTION AUTO LAUNCH DREAME X50
+# ============================================================
+- id: dreame_x50_autolaunch
+  alias: Lancer robot laveur si alarme activée et hors tarif rouge
+  description: Démarre le robot 30min après activation alarme, une fois par jour, hors Tempo rouge et dans la plage horaire
+  trigger:
+    - platform: state
+      entity_id: alarm_control_panel.maison_rdc_ouvertures
+      to: armed_away
+      for:
+        minutes: 15
+  condition:
+    - condition: state
+      entity_id: input_boolean.robot_auto_enable
+      state: "on"
+    - condition: not
+      conditions:
+        - condition: state
+          entity_id: sensor.rte_tempo_couleur_actuelle
+          state: "rouge"
+    - condition: state
+      entity_id: input_boolean.robot_deja_lance_aujourdhui
+      state: "off"
+    - condition: time
+      after: input_datetime.robot_heure_debut
+      before: input_datetime.robot_heure_fin
+  action:
+    - choose:
+        - conditions:
+            - condition: state
+              entity_id: input_select.robot_mode_nettoyage
+              state: "Nettoyage complet"
+          sequence:
+            - service: vacuum.start
+              target:
+                entity_id: vacuum.x50_ultra_complete
+        - conditions:
+            - condition: state
+              entity_id: input_select.robot_mode_nettoyage
+              state: "Pièces sélectionnées"
+          sequence:
+            - service: dreame_vacuum.vacuum_clean_segment
+              data:
+                entity_id: vacuum.x50_ultra_complete
+                segments: "{{ state_attr('sensor.robot_segments_selectionnes', 'segments_list') }}"
+    - service: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.robot_deja_lance_aujourdhui
+  mode: single
+# ============================================================
+
+- id: init_compteur_dreame_x50
+  alias: Réinitialiser compteur robot laveur
+  description: Remet le compteur à zéro chaque jour à minuit
+  trigger:
+    - platform: time
+      at: "00:00:00"
+  action:
+    - service: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.robot_deja_lance_aujourdhui
+  mode: single
+# ============================================================
+
+# ============================================================
