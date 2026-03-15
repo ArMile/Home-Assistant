@@ -5,6 +5,9 @@ Configuration complète de mon installation Home Assistant, organisée par fonct
 ## Dashboard Accueil
 
 ![Dashboard Accueil 1](screenshots/dashboard_accueil_1.png)
+![Dashboard Accueil 2](screenshots/dashboard_accueil_2.png)
+
+Dans chaque dossier, vous retrouverez un fichier dashboard.yaml qui sera le code du dashboard
 
 ## Fonctionnalités
 
