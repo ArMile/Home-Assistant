@@ -1,0 +1,162 @@
+# ============================================
+# Home Assistant - Configuration Principale
+# Mise à jour : Mars 2026
+# ============================================
+#
+# ╔══════════════════════════════════════════════════════════════╗
+# ║              TABLE DES MATIÈRES                              ║
+# ╠══════════════════════════════════════════════════════════════╣
+# ║  1. PARAMÈTRES GÉNÉRAUX                                      ║
+# ║     1.1  Localisation (homeassistant)                        ║
+# ║     1.2  Notifications SMTP (notify)                         ║
+# ║     1.3  Reverse Proxy (http)                                ║
+# ║     1.4  Système Musical Sonos                               ║
+# ║     1.5  Switch Cisco 3650 (device_tracker)                  ║
+# ║     1.6  Quorum Cluster Proxmox (command_line)               ║
+# ║                                                              ║
+# ║  2. SYSTÈME DE CHAUFFAGE - PARAMÈTRES (input_number)         ║
+# ║     2.1  Températures de consigne                            ║
+# ║     2.2  Délai refroidissement TV OLED                       ║
+# ║     2.3  Seuils Ballon eau chaude                            ║
+# ║     2.4  Seuils Frigo américain                              ║
+# ║     2.5  Timestamps Télétravail                              ║
+# ║     2.6  Ordres Robot Dreame X50                             ║
+# ║     2.7  Seuil extinction NAS/UPS                            ║
+# ║                                                              ║
+# ║  3. MODES ET ÉTATS (input_boolean)                           ║
+# ║     3.1  Chauffage (actif, manuel, modes)                    ║
+# ║     3.2  Périodes plannings horaires                         ║
+# ║     3.3  Sync Télétravail & Vacances scolaires               ║
+# ║     3.4  Ballon eau chaude                                   ║
+# ║     3.5  Frigo américain                                     ║
+# ║     3.6  TV Salon                                            ║
+# ║     3.7  Bureaux (Arnaud, Julie, Maxence)                    ║
+# ║     3.8  Robot Dreame X50                                    ║
+# ║                                                              ║
+# ║  4. DATES ET HEURES (input_datetime)                         ║
+# ║     4.1  Vacances, Boost, Télétravail                        ║
+# ║     4.2  Planning Normal - Semaine Matin + Soir (Lun-Ven)    ║
+# ║     4.3  Planning Normal - Weekend (Sam + Dim)               ║
+# ║     4.4  Planning Télétravail (7 jours)                      ║
+# ║     4.5  Planning Vacances Maison & Weekend Prolongé         ║
+# ║     4.6  Ballon eau chaude (plage horaire)                   ║
+# ║     4.7  TV Salon (historique + limites)                     ║
+# ║     4.8  Bureau Arnaud (historique + limites)                ║
+# ║     4.9  Bureau Maxence (historique + limites)               ║
+# ║     4.10 Bureau Julie (historique + limites)                 ║
+# ║     4.11 Robot Dreame X50                                    ║
+# ║                                                              ║
+# ║  5. SENSORS TEMPLATES (template)                             ║
+# ║     5.1  Température RDC Corrigée                            ║
+# ║     5.2  ZLinky PAPP Power (VA → W)                          ║
+# ║     5.3  Puissance surplus solaire                           ║
+# ║     5.4  Production Solaire filtrée                          ║
+# ║     5.5  Autonomie onduleur SMC1000I                         ║
+# ║     5.6  Heures lever/coucher du soleil                      ║
+# ║     5.7  Prochain Bloc Télétravail                           ║
+# ║     5.8  Robot - Segments sélectionnés                       ║
+# ║     5.9  Consommation Journalière Totale EDF                 ║
+# ║     5.10 Binary Sensors (TV + Bureaux Réellement ON)         ║
+# ║                                                              ║
+# ║  6. INPUT SELECT                                             ║
+# ║     6.1  Sélecteur Planning à Configurer                     ║
+# ║     6.2  Statut Ballon eau chaude                            ║
+# ║     6.3  Statut Frigo Surplus                                ║
+# ║     6.4  Mode Nettoyage Robot                                ║
+# ║                                                              ║
+# ║  7. UTILITY METERS                                           ║
+# ║     7.1  TV Salon (journalier, hebdo, mensuel, annuel)       ║
+# ║     7.2  Consommation EDF Tempo HC/HP (6 index)              ║
+# ║     7.3  Bureau Arnaud (journalier, hebdo, mensuel, annuel)  ║
+# ║     7.4  Bureau Maxence (journalier, hebdo, mensuel, annuel) ║
+# ║     7.5  Bureau Julie (journalier, hebdo, mensuel, annuel)   ║
+# ║     7.6  Injection EDF journalière                           ║
+# ║                                                              ║
+# ║  8. NOTES ET DOCUMENTATION                                   ║
+# ║     8.1  Capteurs & contacteurs                              ║
+# ║     8.2  Planning par défaut                                 ║
+# ║     8.3  Modes disponibles & priorités                       ║
+# ║     8.4  Résumé helpers créés                                ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+# Fichiers externes
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+sensor: !include sensors.yaml
+
+# ============================================================
+# 1. PARAMETRES GENERAUX
+# ============================================================
+
+# ------------------------------------------------------------
+# 1.1 Localisation (me sert à affiner valeur sun.sun par rapport à ma position exacte)
+# ------------------------------------------------------------
+homeassistant:
+  latitude: 4x.xxxxxx  # Votre lieu de résidence
+  longitude: 2.05
+  elevation: 116  # Mètres au-dessus du niveau de la mer
+  time_zone: Europe/Paris
+  unit_system: metric
+  currency: EUR
+
+# ------------------------------------------------------------
+# 1.2 Notifications SMTP
+# ------------------------------------------------------------
+notify:
+  - name: "ha_email"
+    platform: smtp
+    server: "smtp.gmail.com"
+    port: 587
+    timeout: 15
+    sender: "votre.email@gmail.com"
+    encryption: starttls
+    username: "votre.email.expéditeur@gmail.com"
+    password: !secret gmail_password  
+    recipient:
+      - "votre.email.destinaitaire@gmail.com"
+    sender_name: "Home Assistant"
+
+# ------------------------------------------------------------
+# 1.3 Reverse Proxy
+# ------------------------------------------------------------
+http:
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 192.168.xxx.xxx    # Gateway du VLAN HA
+    - 192.168.xxx.xxx   # IP de gestion Firewall/Reverse Proxy
+  ip_ban_enabled: true
+  login_attempts_threshold: 5
+
+# ------------------------------------------------------------
+# 1.4 Systeme Musical Sonos
+# ------------------------------------------------------------
+sonos:
+  media_player:
+    advertise_addr: 192.168.xxx.xxx   # IP de Home Assistant joignable depuis le VLAN Sonos
+    hosts:
+      - 192.168.xxx.xxx               # IP Sonos Play:1 SaM
+      - 192.168.xxx.xxx               # IP Sonos Play:1 SaM
+      - 192.168.xxx.xxx               # IP Sonos Roam Portable
+
+# ------------------------------------------------------------
+# 1.5 Switch Cisco 3650
+# ------------------------------------------------------------
+#device_tracker:
+#  - platform: cisco_ios
+#    host: 192.168.xxx.xxx
+#    username: xxxxxxx
+#    password: !secret cisco_password
+#    port: 22
+#    interval_seconds: 30      # fréquence de scan (défaut 12s)
+#    consider_home: 180        # secondes avant de marquer "absent"
+#    new_device_defaults:
+#      track_new_devices: true  # tracker automatiquement les nouveaux appareils
+# ------------------------------------------------------------
