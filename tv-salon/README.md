@@ -3,7 +3,7 @@
 Gestion de la coupure/allumage de la TV / Home Cinéma Salon selon les modes de plannings (chauffage) actifs
 Calcul des temps de fonctionnement et consommations énergétiques.
 
-## Dashboards Bureaux
+## Dashboards TV Salon
 
 ![Dashboard TV Salon](screenshots/dashboard_tv_salon.png)
 
