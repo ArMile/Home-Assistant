@@ -38,7 +38,7 @@ Configuration complète de mon installation Home Assistant, organisée par fonct
 ## Utilisation
 
 Chaque dossier est **autonome** : tu peux copier uniquement les fichiers qui t'intéressent.
-Tu pourrais retrouver des fonctionnalités quand même dans plusieurs dossiers. Par exemple tv-salon et bureaux s'appuient sur les modes de plannings du chauffage
+Tu pourras retrouver des fonctionnalités dans plusieurs dossiers. Par exemple tv-salon et bureaux s'appuient sur les modes de plannings du chauffage
 
 Chaque dossier contient :
 - `helpers.yaml` — helpers HA (input_number, input_boolean, input_datetime, template sensors)
@@ -46,6 +46,17 @@ Chaque dossier contient :
 - `scripts.yaml` — scripts si applicable
 - `sensors.yaml` — sensors si applicable
 - `README.md` — documentation spécifique
+
+## Dashboards
+Utilisation des extentions HACS suivantes dans mes dashboards :
+    - Mushroom
+    - Lovelace Mini Graph Card
+    - Button Card by @RomRider
+    - Lovelace Vacuum Map card (pour mon Dreame X50)
+    - card-mod 4
+    - layout-card
+    - Sonos Card (loin d'être terminé)
+    - template-entity-row
 
 ## Sécurité
 
