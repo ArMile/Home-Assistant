@@ -1,6 +1,7 @@
 # Robot Dreame X50
 
 Pilotage du Robot via extention HACS "Dreame vacuum integration for Home Assistant"
+
 /!\ ATTENTION /!\ : Utilisez la version Beta
 
 Permet de gérer presque tous les paramètres comme depuis application.
