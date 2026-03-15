@@ -53,14 +53,14 @@ Chaque dossier contient :
 
 ## Dashboards
 Utilisation des extentions HACS suivantes dans mes dashboards :
-    - Mushroom
-    - Lovelace Mini Graph Card
-    - Button Card by @RomRider
-    - Lovelace Vacuum Map card (pour mon Dreame X50)
-    - card-mod 4
-    - layout-card
-    - Sonos Card (loin d'être terminé)
-    - template-entity-row
+- Mushroom
+- Lovelace Mini Graph Card
+- Button Card by @RomRider
+- Lovelace Vacuum Map card (pour mon Dreame X50)
+- card-mod 4
+- layout-card
+- Sonos Card (loin d'être terminé)
+- template-entity-row
 
 ## Sécurité
 
