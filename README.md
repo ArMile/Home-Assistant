@@ -2,6 +2,10 @@
 
 Configuration complète de mon installation Home Assistant, organisée par fonctionnalité.
 
+## Dashboard Accueil
+
+![Dashboard Accueil 1](screenshots/dashboard_accueil_1.png)
+
 ## Fonctionnalités
 
 | Dossier | Description |
