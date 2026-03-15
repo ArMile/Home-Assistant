@@ -2,13 +2,12 @@
 
 ## Cluster
 
-- 2 nœuds identiques : Intel i9-12900H, 32 Go RAM
-- Proxmox VE 9.1.4
+- 2 nœuds identiques Proxmox VE 9.1.4 + QNetd Corosync sur Odroid C2 pour vote
 - Quorum surveillé via `command_line` sensor dans HA
 
 ## Sensor Quorum HA
 
-```yaml
+## configuration.yaml
 command_line:
   - sensor:
       name: "Proxmox Quorum Status"

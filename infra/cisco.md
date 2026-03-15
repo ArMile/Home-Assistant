@@ -10,8 +10,7 @@
 
 Communauté `xxxxxxx` configurée avec ACL `acl-snmp-ha` restreinte à l'IP de HA.
 
-```yaml
-# configuration.yaml
+## configuration.yaml
 sensor:
   - platform: snmp
     name: "Cisco 3650"
@@ -34,10 +33,14 @@ Host 192.168.xxx.xxx
 
 ## Device Tracker (désactivé)
 
-```yaml
+## configuration.yaml
 # device_tracker:
 #   - platform: cisco_ios
 #     host: 192.168.xxx.xxx
 #     username: xxxxxxx
 #     password: !secret cisco_password
-```
+#    port: 22
+#    interval_seconds: 30      # fréquence de scan (défaut 12s)
+#    consider_home: 180        # secondes avant de marquer "absent"
+#    new_device_defaults:
+#      track_new_devices: true  # tracker automatiquement les nouveaux appareils
