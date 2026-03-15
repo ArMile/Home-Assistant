@@ -39,7 +39,7 @@ Chaque dossier contient :
 - `automations.yaml` — automations liées à cette fonctionnalité
 - `scripts.yaml` — scripts si applicable
 - `sensors.yaml` — sensors si applicable
-- `dashboard.yaml` — Code YAML du dashboard 
+- `dashboard.yaml` — Code YAML du ou des dashboard(s). Commencera toujours par dashbord_xxx.yaml
 - `README.md` — documentation spécifique
 
 ## Dashboards
