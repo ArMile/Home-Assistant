@@ -1,4 +1,4 @@
-# Home Assistant - Configuration ArMile
+# Home Assistant - Configuration & Détails
 
 Configuration complète de mon installation Home Assistant, organisée par fonctionnalité.
 

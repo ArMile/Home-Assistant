@@ -1,0 +1,553 @@
+views:
+  - title: Accueil
+    path: home
+    icon: mdi:home
+    type: panel
+    cards:
+      - type: custom:layout-card
+        layout_type: custom:grid-layout
+        layout:
+          grid-template-columns: 50% 50%
+          grid-template-rows: auto
+          margin: 0
+        cards:
+          - type: vertical-stack
+            cards:
+              - type: custom:mushroom-template-card
+                primary: 🔥 Chauffage
+                icon: mdi:arrow-right-circle
+                icon_color: orange
+                layout: horizontal
+                fill_container: false
+                tap_action:
+                  action: navigate
+                  navigation_path: /chauffage-v2/chauffage-principal
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(255, 152, 0, 0.1);
+                      border-left: 4px solid #FF9800;
+                      cursor: pointer;
+                      transition: all 0.3s ease;
+                    }
+                    ha-card:hover {
+                      transform: translateX(4px);
+                      box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+                    }
+              - type: conditional
+                conditions:
+                  - entity: input_boolean.chauffage_actif
+                    state: 'on'
+                card:
+                  type: markdown
+                  content: |-
+                    <div style="padding: 12px; text-align: center;">
+                      🔥 <b>État Chauffage : <font color="#FF9800"><b>ALLUMÉ</b></font></b>
+                    </div>
+                      
+              - type: conditional
+                conditions:
+                  - entity: input_boolean.chauffage_actif
+                    state: 'off'
+                card:
+                  type: markdown
+                  content: |-
+                    <div style="padding: 12px; text-align: center;">
+                      ❄️ <b>État Chauffage : <font color="#F44336"><b>ÉTEINT</b></font></b>
+                    </div>
+              - type: custom:mushroom-chips-card
+                alignment: center
+                chips:
+                  - type: template
+                    icon: >
+                      {% if is_state('input_boolean.mode_vacances', 'on')
+                      %}mdi:airplane {% elif
+                      is_state('input_boolean.chauffage_manuel', 'on')
+                      %}mdi:hand-back-right {% elif
+                      is_state('input_boolean.boost_temperature', 'on')
+                      %}mdi:fire-alert {% elif
+                      is_state('input_boolean.mode_planning_teletravail', 'on')
+                      %}mdi:laptop {% elif
+                      is_state('input_boolean.mode_planning_vacances_maison',
+                      'on') %}mdi:home-heart {% elif
+                      is_state('input_boolean.mode_planning_weekend_prolonge',
+                      'on') %}mdi:party-popper {% else %}mdi:calendar-check{%
+                      endif %}
+                    content: >
+                      {% if is_state('input_boolean.mode_vacances', 'on') %}Mode
+                      Vacances {% elif
+                      is_state('input_boolean.chauffage_manuel', 'on') %}Mode
+                      Manuel {% elif is_state('input_boolean.boost_temperature',
+                      'on') %}Mode Boost {% elif
+                      is_state('input_boolean.mode_planning_teletravail', 'on')
+                      %}Mode Télétravail {% elif
+                      is_state('input_boolean.mode_planning_vacances_maison',
+                      'on') %}Vacances Maison {% elif
+                      is_state('input_boolean.mode_planning_weekend_prolonge',
+                      'on') %}Weekend Prolongé {% else %}Planning Normal{% endif
+                      %}
+                    icon_color: >
+                      {% if is_state('input_boolean.mode_vacances', 'on') %}blue
+                      {% elif is_state('input_boolean.chauffage_manuel', 'on')
+                      %}orange {% elif
+                      is_state('input_boolean.boost_temperature', 'on') %}red {%
+                      elif is_state('input_boolean.mode_planning_teletravail',
+                      'on') %}teal {% elif
+                      is_state('input_boolean.mode_planning_vacances_maison',
+                      'on') %}pink {% elif
+                      is_state('input_boolean.mode_planning_weekend_prolonge',
+                      'on') %}purple {% else %}green{% endif %}
+                    card_mod:
+                      style: |
+                        ha-card {
+                          animation: pulse 2s ease-in-out infinite;
+                        }
+                        @keyframes pulse {
+                          0%, 100% { opacity: 1; }
+                          50% { opacity: 0.6; }
+                        }
+              - type: custom:mushroom-chips-card
+                chips:
+                  - type: entity
+                    entity: sensor.temperature_rdc_corrigee
+                    icon: mdi:thermometer
+                    content_info: state
+                  - type: entity
+                    entity: sensor.thm_39134761
+                    icon: mdi:thermometer
+                    content_info: state
+                  - type: entity
+                    entity: sensor.thm_39134764
+                    icon: mdi:thermometer
+                    content_info: state
+                  - type: entity
+                    entity: input_number.temp_consigne_active
+                    icon: mdi:thermostat
+                    content_info: state
+                    tap_action:
+                      action: more-info
+              - type: custom:mini-graph-card
+                entities:
+                  - entity: sensor.temperature_rdc_corrigee
+                    name: RDC
+                    color: '#FF6B6B'
+                  - entity: sensor.thm_39134761
+                    name: Entrée
+                    color: '#4ECDC4'
+                  - entity: sensor.thm_39134764
+                    name: Étage
+                    color: '#95E1D3'
+                hours_to_show: 12
+                line_width: 1
+                font_size: 60
+                show:
+                  labels: false
+          - type: vertical-stack
+            cards:
+              - type: custom:mushroom-template-card
+                primary: ⚡ Énergie
+                icon: mdi:arrow-right-circle
+                icon_color: amber
+                layout: horizontal
+                fill_container: false
+                tap_action:
+                  action: navigate
+                  navigation_path: /energy/overview
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(255, 193, 7, 0.1);
+                      border-left: 4px solid #FFC107;
+                      cursor: pointer;
+                      transition: all 0.3s ease;
+                    }
+                    ha-card:hover {
+                      transform: translateX(4px);
+                      box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+                    }
+              - type: custom:mini-graph-card
+                entities:
+                  - entity: sensor.zlinky_papp_power
+                    name: Consommation
+                    color: '#2196F3'
+                  - entity: sensor.ecu_current_power
+                    name: Production Solaire
+                    color: '#FFC107'
+                  - entity: sensor.puissance_surplus_solaire
+                    name: Injection Réseau
+                    color: '#F44336'
+                hours_to_show: 12
+                line_width: 1
+                font_size: 90
+                animate: true
+                show:
+                  labels: false
+                  fill: fade
+              - type: custom:mushroom-chips-card
+                chips:
+                  - type: template
+                    icon: mdi:lightning-bolt
+                    content: '{{ states(''sensor.zlinky_papp_power'')|float|round(0) }} W'
+                    icon_color: blue
+                  - type: template
+                    icon: mdi:solar-power
+                    content: '{{ states(''sensor.ecu_current_power'')|float|round(0) }} W'
+                    icon_color: amber
+                  - type: template
+                    icon: mdi:transmission-tower-export
+                    content: >-
+                      {{
+                      states('sensor.puissance_surplus_solaire')|float|round(0)
+                      }} W
+                    icon_color: red
+              - type: markdown
+                content: |
+                  <table style="width: 100%; border-spacing: 15px 0;">
+                    <tr>
+                      <td style="text-align: center; width: 33%;">
+                        <div style="font-size: 24px; font-weight: bold; color: #2196F3;">{{ states('sensor.consommation_journaliere_totale')|float(0)|round(1) }} kWh</div>
+                        <div style="font-size: 12px; color: var(--secondary-text-color); margin-top: 4px;">⚡ Consommation</div>
+                      </td>
+                      <td style="text-align: center; width: 33%;">
+                        <div style="font-size: 24px; font-weight: bold; color: #FFC107;">{{ states('sensor.ecu_today_energy')|float(0)|round(2) }} kWh</div>
+                        <div style="font-size: 12px; color: var(--secondary-text-color); margin-top: 4px;">☀️ Production</div>
+                      </td>
+                      <td style="text-align: center; width: 33%;">
+                        <div style="font-size: 24px; font-weight: bold; color: #4CAF50;">{{ states('sensor.injection_journaliere')|float(0)|round(2) }} kWh</div>
+                        <div style="font-size: 12px; color: var(--secondary-text-color); margin-top: 4px;">🔌 Injection</div>
+                      </td>
+                    </tr>
+                  </table>
+          - type: vertical-stack
+            cards:
+              - type: custom:mushroom-template-card
+                primary: 🔒 Sécurité
+                icon: mdi:arrow-right-circle
+                icon_color: red
+                layout: horizontal
+                fill_container: false
+                tap_action:
+                  action: navigate
+                  navigation_path: /dashboard-alarme/0
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(244, 67, 54, 0.1);
+                      border-left: 4px solid #F44336;
+                      cursor: pointer;
+                      transition: all 0.3s ease;
+                    }
+                    ha-card:hover {
+                      transform: translateX(4px);
+                      box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+                    }
+              - type: custom:mushroom-template-card
+                primary: >
+                  {% if is_state('alarm_control_panel.maison_rdc_ouvertures',
+                  'disarmed') and
+                        is_state('alarm_control_panel.maison_etage', 'disarmed') and
+                        is_state('alarm_control_panel.maison_garages_cabaon', 'disarmed') %}
+                    Alarme Désactivée
+                  {% else %}
+                    Alarme Activée
+                  {% endif %}
+                secondary: RDC • Étage • Garages
+                icon: mdi:shield-home
+                icon_color: >
+                  {% if is_state('alarm_control_panel.maison_rdc_ouvertures',
+                  'disarmed') and
+                        is_state('alarm_control_panel.maison_etage', 'disarmed') and
+                        is_state('alarm_control_panel.maison_garages_cabaon', 'disarmed') %}
+                    grey
+                  {% else %}
+                    red
+                  {% endif %}
+                badge_icon: >
+                  {% if is_state('alarm_control_panel.maison_rdc_ouvertures',
+                  'disarmed') and
+                        is_state('alarm_control_panel.maison_etage', 'disarmed') and
+                        is_state('alarm_control_panel.maison_garages_cabaon', 'disarmed') %}
+                    mdi:lock-open
+                  {% else %}
+                    mdi:lock
+                  {% endif %}
+                badge_color: >
+                  {% if is_state('alarm_control_panel.maison_rdc_ouvertures',
+                  'disarmed') and
+                        is_state('alarm_control_panel.maison_etage', 'disarmed') and
+                        is_state('alarm_control_panel.maison_garages_cabaon', 'disarmed') %}
+                    grey
+                  {% else %}
+                    red
+                  {% endif %}
+                tap_action:
+                  action: navigate
+                  navigation_path: /dashboard-alarme/0
+                card_mod:
+                  style: |
+                    ha-card {
+                      {% if is_state('alarm_control_panel.maison_rdc_ouvertures', 'disarmed') and
+                            is_state('alarm_control_panel.maison_etage', 'disarmed') and
+                            is_state('alarm_control_panel.maison_garages_cabaon', 'disarmed') %}
+                        background: rgba(158, 158, 158, 0.1);
+                        border-left: 4px solid #9E9E9E;
+                      {% else %}
+                        background: rgba(244, 67, 54, 0.1);
+                        border-left: 4px solid #F44336;
+                      {% endif %}
+                      cursor: pointer;
+                      transition: all 0.3s ease;
+                    }
+              - type: custom:mushroom-chips-card
+                alignment: center
+                chips:
+                  - type: template
+                    entity: binary_sensor.maison_etat_port_cellier
+                    icon: mdi:door
+                    icon_color: >-
+                      {{ 'red' if
+                      is_state('binary_sensor.maison_etat_port_cellier', 'on')
+                      else 'green' }}
+                    content: Cellier
+                    tap_action:
+                      action: more-info
+                  - type: template
+                    entity: binary_sensor.maison_etat_fenetre_garage_2
+                    icon: mdi:window-closed
+                    icon_color: >-
+                      {{ 'orange' if
+                      is_state('binary_sensor.maison_etat_fenetre_garage_2',
+                      'on') else 'green' }}
+                    content: Fenêtre
+                    tap_action:
+                      action: more-info
+                  - type: template
+                    entity: binary_sensor.maison_etat_garage_1
+                    icon: mdi:garage
+                    icon_color: >-
+                      {{ 'orange' if
+                      is_state('binary_sensor.maison_etat_garage_1', 'on') else
+                      'green' }}
+                    content: Garage 1
+                    tap_action:
+                      action: more-info
+                  - type: template
+                    entity: binary_sensor.maison_etat_garage_2
+                    icon: mdi:garage
+                    icon_color: >-
+                      {{ 'orange' if
+                      is_state('binary_sensor.maison_etat_garage_2', 'on') else
+                      'green' }}
+                    content: Garage 2
+                    tap_action:
+                      action: more-info
+          - type: vertical-stack
+            cards:
+              - type: custom:mushroom-template-card
+                primary: 📅 Planning
+                icon: mdi:arrow-right-circle
+                icon_color: green
+                layout: horizontal
+                fill_container: false
+                tap_action:
+                  action: navigate
+                  navigation_path: /calendar
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(76, 175, 80, 0.1);
+                      border-left: 4px solid #4CAF50;
+                      cursor: pointer;
+                      transition: all 0.3s ease;
+                    }
+                    ha-card:hover {
+                      transform: translateX(4px);
+                      box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+                    }
+              - type: custom:atomic-calendar-revive
+                entities:
+                  - entity: calendar.armile_juloul_gmail_com
+                maxDaysToShow: 3
+                maxEventCount: 5
+                showProgressBar: true
+                dateFormat: ddd DD MMM
+          - type: vertical-stack
+            view_layout:
+              grid-column: 1 / -1
+            cards:
+              - type: custom:mushroom-template-card
+                primary: 📹 CCTV
+                secondary: '👤 User : {{ user }}'
+                icon: mdi:arrow-right-circle
+                icon_color: grey
+                layout: horizontal
+                fill_container: false
+                tap_action:
+                  action: navigate
+                  navigation_path: /ccab4aaf_frigate
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(158, 158, 158, 0.1);
+                      border-left: 4px solid #9E9E9E;
+                      cursor: pointer;
+                      transition: all 0.3s ease;
+                    }
+                    ha-card:hover {
+                      transform: translateX(4px);
+                      box-shadow: 0 2px 8px rgba(158, 158, 158, 0.3);
+                    }
+              - type: custom:mod-card
+                card_mod:
+                  style: |
+                    {% set allowed_users = ['ArMile', 'Juloul'] %}
+                    {% if user not in allowed_users %}
+                      ha-card { display: none !important; }
+                    {% endif %}
+                card:
+                  type: horizontal-stack
+                  cards:
+                    - type: picture-entity
+                      entity: camera.p3225_lve_mk_ii_0
+                      camera_view: live
+                      show_state: false
+                      show_name: true
+                      name: 📹 Caméra Entrée
+                      aspect_ratio: 16x9
+                    - type: picture-entity
+                      entity: camera.p3225_lve_mk_ii_1
+                      camera_view: live
+                      show_state: false
+                      show_name: true
+                      name: 📹 Caméra Jardin
+                      aspect_ratio: 16x9
+              - type: custom:mod-card
+                card_mod:
+                  style: |
+                    {% set allowed_users = ['chauffage', 'HA_Tab'] %}
+                    {% if user not in allowed_users %}
+                      ha-card { display: none !important; }
+                    {% endif %}
+                card:
+                  type: horizontal-stack
+                  cards:
+                    - type: picture-entity
+                      entity: camera.p3225_lve_mk_ii_0
+                      camera_view: auto
+                      show_state: false
+                      show_name: true
+                      name: 📹 Caméra Entrée
+                      aspect_ratio: 16x9
+                    - type: picture-entity
+                      entity: camera.p3225_lve_mk_ii_1
+                      camera_view: auto
+                      show_state: false
+                      show_name: true
+                      name: 📹 Caméra Jardin
+                      aspect_ratio: 16x9
+          - type: grid
+            view_layout:
+              grid-column: 1 / -1
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                primary: ⚡ Surplus Solaire
+                icon: mdi:solar-power
+                icon_color: deep-orange
+                layout: horizontal
+                tap_action:
+                  action: navigate
+                  navigation_path: /gestion-production-eau-chaude/0
+                badge_icon: mdi:arrow-right
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(255, 87, 34, 0.1);
+                      border-left: 4px solid #FF5722;
+                      cursor: pointer;
+                      transition: all 0.3s ease;
+                    }
+                    ha-card:hover {
+                      transform: translateX(4px);
+                      box-shadow: 0 2px 8px rgba(255, 87, 34, 0.3);
+                    }
+              - type: custom:mushroom-template-card
+                primary: 🤖 Aspirateur
+                icon: mdi:robot-vacuum
+                icon_color: purple
+                layout: horizontal
+                tap_action:
+                  action: navigate
+                  navigation_path: /dreame-x50-ultra/control
+                badge_icon: mdi:arrow-right
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(156, 39, 176, 0.1);
+                      border-left: 4px solid #9C27B0;
+                      cursor: pointer;
+                      transition: all 0.3s ease;
+                    }
+                    ha-card:hover {
+                      transform: translateX(4px);
+                      box-shadow: 0 2px 8px rgba(156, 39, 176, 0.3);
+                    }
+              - type: custom:mushroom-template-card
+                primary: 🖥️ Bureau
+                icon: mdi:desk
+                icon_color: green
+                layout: horizontal
+                tap_action:
+                  action: navigate
+                  navigation_path: /gestion-bureau-arnaud/bureau-arnaud
+                badge_icon: mdi:arrow-right
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(76, 175, 80, 0.1);
+                      border-left: 4px solid #4CAF50;
+                      cursor: pointer;
+                      transition: all 0.3s ease;
+                    }
+                    ha-card:hover {
+                      transform: translateX(4px);
+                      box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+                    }
+              - type: custom:mushroom-template-card
+                primary: 📺 TV & Média
+                icon: mdi:television
+                icon_color: blue
+                layout: horizontal
+                tap_action:
+                  action: navigate
+                  navigation_path: /tv-version-3/tv-salon
+                badge_icon: mdi:arrow-right
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(33, 150, 243, 0.1);
+                      border-left: 4px solid #2196F3;
+                      cursor: pointer;
+                      transition: all 0.3s ease;
+                    }
+                    ha-card:hover {
+                      transform: translateX(4px);
+                      box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+                    }
+          - type: weather-forecast
+            view_layout:
+              grid-column: 1 / -1
+            entity: weather.forecast_maison
+            show_current: true
+            show_forecast: true
+            forecast_type: daily
+            secondary_info_attribute: wind_speed
+            card_mod:
+              style: |
+                ha-card {
+                  background: var(--ha-card-background, var(--card-background-color, white));
+                  border-radius: var(--ha-card-border-radius, 12px);
+                  box-shadow: var(--ha-card-box-shadow, none);
+                  border: var(--ha-card-border-width, 0px) solid var(--ha-card-border-color, transparent);
+                }
