@@ -1,0 +1,17 @@
+              - type: entity
+                entity: sensor.proxmox_quorum_status
+                name: Quorum Proxmox
+                card_mod:
+                  style: |
+                    ha-card {
+                      {% if states('sensor.proxmox_quorum_status') == 'OK' %}
+                        background-color: rgba(0, 255, 0, 0.1);
+                        border-left: 4px solid green;
+                      {% elif states('sensor.proxmox_quorum_status') == 'DEGRADED' %}
+                        background-color: rgba(255, 165, 0, 0.1);
+                        border-left: 4px solid orange;
+                      {% else %}
+                        background-color: rgba(255, 0, 0, 0.1);
+                        border-left: 4px solid red;
+                      {% endif %}
+                    }

@@ -1,0 +1,360 @@
+title: Gestion Surplus Solaire
+path: surplus-solaire
+views:
+  - title: Home
+    icon: mdi:solar-power
+    panel: true
+    cards:
+      - type: custom:layout-card
+        layout_type: custom:grid-layout
+        layout:
+          grid-template-columns: 100%
+          grid-template-rows: auto
+          grid-template-areas: |
+            "header"
+            "main"
+        cards:
+          - type: vertical-stack
+            view_layout:
+              grid-area: header
+            cards:
+              - type: custom:mushroom-chips-card
+                alignment: left
+                chips:
+                  - type: template
+                    icon: mdi:home
+                    content: Accueil
+                    icon_color: blue
+                    tap_action:
+                      action: navigate
+                      navigation_path: /dashboard-accueil/home
+              - type: custom:mushroom-title-card
+                title: Gestion Surplus Solaire
+                subtitle: Optimisation automatique ballon & frigo
+              - type: custom:mushroom-chips-card
+                alignment: center
+                chips:
+                  - type: template
+                    icon: mdi:weather-sunset-up
+                    content: Lever {{ states('sensor.heure_lever_du_soleil') }}
+                    icon_color: orange
+                  - type: template
+                    icon: mdi:clock-start
+                    content: >-
+                      Début {{ states('input_datetime.ballon_heure_debut')[:-3]
+                      }}
+                    icon_color: blue
+                  - type: template
+                    icon: mdi:clock-end
+                    content: Fin {{ states('input_datetime.ballon_heure_fin')[:-3] }}
+                    icon_color: blue
+                  - type: template
+                    icon: mdi:weather-sunset-down
+                    content: Coucher {{ states('sensor.heure_coucher_du_soleil') }}
+                    icon_color: deep-orange
+                card_mod:
+                  style: |
+                    ha-card {
+                      font-size: 1.3em;
+                      font-weight: 500;
+                    }
+              - type: horizontal-stack
+                cards:
+                  - type: custom:mushroom-entity-card
+                    entity: sensor.production_solaire
+                    name: Production Solaire
+                    icon: mdi:solar-panel
+                    icon_color: amber
+                    primary_info: name
+                    secondary_info: state
+                  - type: custom:mushroom-entity-card
+                    entity: sensor.puissance_surplus_solaire
+                    name: Surplus Injecté
+                    icon: mdi:transmission-tower-export
+                    icon_color: green
+                    primary_info: name
+                    secondary_info: state
+              - type: horizontal-stack
+                cards:
+                  - type: gauge
+                    entity: sensor.production_solaire
+                    name: Production Solaire
+                    min: 0
+                    max: 3000
+                    needle: true
+                    unit: W
+                  - type: gauge
+                    entity: sensor.puissance_surplus_solaire
+                    name: Surplus Actuel
+                    min: 0
+                    max: 3000
+                    needle: true
+                    severity:
+                      green: 450
+                      yellow: 200
+                      red: 0
+                    unit: W
+              - type: history-graph
+                title: Production & Surplus - 24h
+                entities:
+                  - entity: sensor.production_solaire
+                    name: Production
+                  - entity: sensor.puissance_surplus_solaire
+                    name: Surplus
+                hours_to_show: 24
+                refresh_interval: 60
+          - type: custom:layout-card
+            layout_type: custom:grid-layout
+            layout:
+              grid-template-columns: 50% 50%
+              grid-template-rows: auto
+              mediaquery:
+                '(max-width: 800px)':
+                  grid-template-columns: 100%
+            view_layout:
+              grid-area: main
+            cards:
+              - type: vertical-stack
+                cards:
+                  - type: custom:mushroom-title-card
+                    title: 💧 Ballon Eau Chaude
+                    subtitle: '{{ states(''input_select.ballon_statut'') }}'
+                  - type: custom:mushroom-entity-card
+                    entity: switch.ballon_eau_chaude
+                    name: Contacteur Ballon
+                    icon: mdi:water-boiler
+                    tap_action:
+                      action: toggle
+                    icon_color: |
+                      {% if is_state('switch.ballon_eau_chaude', 'on') %}
+                        orange
+                      {% else %}
+                        grey
+                      {% endif %}
+                  - type: custom:mushroom-chips-card
+                    alignment: center
+                    chips:
+                      - type: template
+                        icon: mdi:thermometer-water
+                        content: '{{ states(''input_select.ballon_statut'') }}'
+                        icon_color: >
+                          {% if is_state('input_select.ballon_statut', 'En
+                          chauffe (surplus)') %}
+                            green
+                          {% elif is_state('input_select.ballon_statut', 'En
+                          attente de surplus') %}
+                            orange
+                          {% else %}
+                            grey
+                          {% endif %}
+                  - type: custom:mushroom-title-card
+                    subtitle: Configuration
+                  - type: custom:mushroom-entity-card
+                    entity: input_boolean.ballon_surplus_actif
+                    name: Activation Auto
+                    icon: mdi:auto-mode
+                    tap_action:
+                      action: toggle
+                    icon_color: >
+                      {% if is_state('input_boolean.ballon_surplus_actif', 'on')
+                      %}
+                        green
+                      {% else %}
+                        grey
+                      {% endif %}
+                  - type: entities
+                    entities:
+                      - entity: input_number.ballon_seuil_demarrage
+                        name: Seuil Démarrage
+                      - entity: input_number.ballon_seuil_arret
+                        name: Seuil Arrêt
+                      - type: divider
+                      - entity: input_number.ballon_marge_debut
+                        name: Marge après lever
+                      - entity: input_number.ballon_marge_fin
+                        name: Marge avant coucher
+                  - type: custom:mushroom-title-card
+                    subtitle: Contrôle Manuel
+                  - type: entities
+                    entities:
+                      - entity: switch.ballon_eau_chaude
+                        name: Forcer Marche/Arrêt
+              - type: vertical-stack
+                cards:
+                  - type: custom:mushroom-title-card
+                    title: ❄️ Frigo Américain
+                    subtitle: '{{ states(''input_select.frigo_statut'') }}'
+                  - type: custom:mushroom-entity-card
+                    entity: input_select.frigo_statut
+                    name: Mode Frigo
+                    icon: mdi:fridge
+                    icon_color: >
+                      {% if is_state('input_select.frigo_statut', 'Boost Max
+                      (surplus)') %}
+                        purple
+                      {% elif is_state('input_select.frigo_statut', 'Boost
+                      (surplus)') %}
+                        cyan
+                      {% elif is_state('input_select.frigo_statut', 'En attente
+                      de surplus') %}
+                        orange
+                      {% else %}
+                        grey
+                      {% endif %}
+                  - type: custom:mushroom-chips-card
+                    alignment: center
+                    chips:
+                      - type: template
+                        icon: mdi:fridge
+                        content: >-
+                          {{
+                          states('sensor.frigo_americain_temperature_du_frigo')
+                          }}°C
+                        icon_color: >
+                          {% set temp =
+                          states('sensor.frigo_americain_temperature_du_frigo')
+                          | float %}
+
+                          {% if temp <= 3 %}
+                            cyan
+                          {% elif temp <= 5 %}
+                            blue
+                          {% else %}
+                            orange
+                          {% endif %}
+                      - type: template
+                        icon: mdi:snowflake
+                        content: >-
+                          {{
+                          states('sensor.frigo_americain_temperature_du_congelateur')
+                          }}°C
+                        icon_color: >
+                          {% set temp =
+                          states('sensor.frigo_americain_temperature_du_congelateur')
+                          | float %}
+
+                          {% if temp <= -20 %}
+                            light-blue
+                          {% elif temp <= -18 %}
+                            blue
+                          {% else %}
+                            orange
+                          {% endif %}
+                      - type: template
+                        icon: mdi:lightning-bolt
+                        content: '{{ states(''sensor.frigo_americain_puissance'') }}W'
+                        icon_color: >
+                          {% set power =
+                          states('sensor.frigo_americain_puissance') | float %}
+
+                          {% if power > 150 %}
+                            red
+                          {% elif power > 80 %}
+                            orange
+                          {% else %}
+                            green
+                          {% endif %}
+                    card_mod:
+                      style: |
+                        ha-card {
+                          font-size: 1.3em;
+                          font-weight: 500;
+                        }
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-entity-card
+                        entity: switch.frigo_americain_power_cool
+                        name: Power Cool
+                        icon: mdi:snowflake-thermometer
+                        tap_action:
+                          action: toggle
+                        card_mod:
+                          style: |
+                            mushroom-shape-icon {
+                              {% if is_state('switch.frigo_americain_power_cool', 'on') %}
+                                --icon-color: rgb(3, 169, 244) !important;
+                                --shape-color: rgba(3, 169, 244, 0.2) !important;
+                              {% else %}
+                                --icon-color: rgb(158, 158, 158) !important;
+                                --shape-color: rgba(158, 158, 158, 0.2) !important;
+                              {% endif %}
+                            }
+                      - type: custom:mushroom-entity-card
+                        entity: switch.frigo_americain_power_freeze
+                        name: Power Freeze
+                        icon: mdi:snowflake-alert
+                        tap_action:
+                          action: toggle
+                        card_mod:
+                          style: |
+                            mushroom-shape-icon {
+                              {% if is_state('switch.frigo_americain_power_freeze', 'on') %}
+                                --icon-color: rgb(3, 169, 244) !important;
+                                --shape-color: rgba(3, 169, 244, 0.2) !important;
+                              {% else %}
+                                --icon-color: rgb(158, 158, 158) !important;
+                                --shape-color: rgba(158, 158, 158, 0.2) !important;
+                              {% endif %}
+                            }
+                  - type: custom:mushroom-title-card
+                    subtitle: Configuration
+                  - type: custom:mushroom-entity-card
+                    entity: input_boolean.frigo_surplus_actif
+                    name: Activation Auto
+                    icon: mdi:auto-mode
+                    tap_action:
+                      action: toggle
+                    icon_color: >
+                      {% if is_state('input_boolean.frigo_surplus_actif', 'on')
+                      %}
+                        green
+                      {% else %}
+                        grey
+                      {% endif %}
+                  - type: entities
+                    entities:
+                      - type: section
+                        label: Seuils
+                      - entity: input_number.frigo_seuil_demarrage
+                        name: Seuil Démarrage
+                        icon: mdi:flash-triangle
+                      - entity: input_number.frigo_seuil_arret
+                        name: Seuil Arrêt
+                        icon: mdi:flash-triangle-outline
+                      - type: divider
+                      - entity: input_number.frigo_power_seuil_activation
+                        name: Activation Mode Power Cool / Freeze
+                        icon: mdi:snowflake-alert
+                      - entity: input_number.frigo_power_seuil_arret
+                        name: Arrêt Mode Power Cool / Freeze
+                        icon: mdi:snowflake
+                      - type: divider
+                      - type: section
+                        label: Températures Normales
+                      - entity: input_number.frigo_temp_normale
+                        name: Frigo Normal
+                      - entity: input_number.congelateur_temp_normale
+                        name: Congélateur Normal
+                      - type: divider
+                      - type: section
+                        label: Températures Boost
+                      - entity: input_number.frigo_temp_boost
+                        name: Frigo Boost
+                      - entity: input_number.congelateur_temp_boost
+                        name: Congélateur Boost
+                  - type: custom:mushroom-title-card
+                    subtitle: Contrôle Manuel
+                  - type: horizontal-stack
+                    cards:
+                      - type: custom:mushroom-number-card
+                        entity: number.frigo_americain_temperature_du_frigo
+                        name: Frigo
+                        icon: mdi:thermometer
+                        icon_color: blue
+                        display_mode: buttons
+                      - type: custom:mushroom-number-card
+                        entity: number.frigo_americain_temperature_du_congelateur
+                        name: Congélateur
+                        icon: mdi:snowflake
+                        icon_color: light-blue
+                        display_mode: buttons

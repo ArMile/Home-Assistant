@@ -1,0 +1,444 @@
+# ============================================================
+# CHAUFFAGE - HELPERS
+# Système de chauffage - Poêle à granulés
+# Priorités : Vacances > Manuel > Boost > TT > VacMaison > WE+ > Normal > Éco
+# Intégration dans configuration.yaml via packages ou !include
+# ============================================================
+
+input_number:
+
+  # Températures de consigne
+  temp_confort:
+    name: "Température Confort"
+    min: 19
+    max: 25
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-high
+
+  temp_eco:
+    name: "Température Éco"
+    min: 15
+    max: 21
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-low
+
+  temp_consigne_active:
+    name: "Consigne Active"
+    min: 5
+    max: 25
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-check
+
+  temp_vacances:
+    name: "Température Vacances"
+    min: 5
+    max: 18
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-alert
+
+  boost_duree:
+    name: "Durée Boost"
+    min: 0.5
+    max: 3
+    step: 0.5
+    unit_of_measurement: "h"
+    icon: mdi:clock-outline
+
+  boost_temperature_supplementaire:
+    name: "Boost +°C"
+    min: 0.5
+    max: 4
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:plus-circle
+
+  temp_consigne_manuelle:
+    name: "Consigne Manuelle"
+    min: 17
+    max: 25
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-alert
+
+  # Timestamps Télétravail depuis agenda Google
+  tt_temp_debut_ts:
+    name: "TT Temp Début Timestamp"
+    min: 0
+    max: 9999999999
+    mode: box
+
+  tt_temp_fin_ts:
+    name: "TT Temp Fin Timestamp"
+    min: 0
+    max: 9999999999
+    mode: box
+
+input_boolean:
+
+  # États chauffage
+  chauffage_actif:
+    name: "Chauffage"
+    icon: mdi:radiator
+
+  chauffage_manuel:
+    name: "Mode Manuel"
+    icon: mdi:hand-back-right
+
+  mode_planning_normal:
+    name: Mode Planning Normal
+    icon: mdi:calendar-check
+
+  mode_vacances:
+    name: "Mode Vacances"
+    icon: mdi:airplane-takeoff
+
+  boost_temperature:
+    name: "Boost Température"
+    icon: mdi:fire-plus
+
+  mode_planning_teletravail:
+    name: "Planning Télétravail"
+    icon: mdi:laptop
+
+  mode_planning_vacances_maison:
+    name: "Planning Vacances à la Maison"
+    icon: mdi:home-heart
+
+  mode_planning_weekend_prolonge:
+    name: "Planning Weekend Prolongé"
+    icon: mdi:calendar-weekend
+
+  presence_maison:
+    name: "Présence Maison"
+    icon: mdi:home-account
+
+  chauffage_desactive_ete:
+    name: "Chauffage Désactivé (Été)"
+    icon: mdi:power-off
+
+  # Périodes horaires dynamiques (gérées par les automations Phase 2)
+  test_periode_confort_active:
+    name: "Test - Période Confort Active"
+    icon: mdi:fire
+
+  horaires_initialises:
+    name: "Horaires Planning Initialisés"
+    icon: mdi:check-circle
+
+  periode_normal_matin:
+    name: "Période Normal Matin"
+    icon: mdi:weather-sunset-up
+
+  periode_normal_soir:
+    name: "Période Normal Soir"
+    icon: mdi:weather-sunset-down
+
+  periode_normal_weekend:
+    name: "Période Normal Weekend"
+    icon: mdi:calendar-weekend
+
+  periode_teletravail:
+    name: "Période Télétravail"
+    icon: mdi:laptop
+
+  periode_vacances_maison:
+    name: "Période Vacances Maison"
+    icon: mdi:home-heart
+
+  periode_weekend_prolonge:
+    name: "Période Weekend Prolongé"
+    icon: mdi:calendar-star
+
+  # Sync Télétravail et Vacances scolaires
+  teletravail_modification_manuelle:
+    name: "Planning TT modifié manuellement"
+    icon: mdi:pencil
+
+  auto_sync_teletravail:
+    name: "Auto-sync Planning Télétravail"
+    icon: mdi:sync
+
+  auto_sync_vacances_scolaires:
+    name: "Sync auto vacances scolaires"
+    icon: mdi:school-sync
+
+input_datetime:
+
+  # Périodes modes spéciaux (avec date + heure)
+  vacances_debut:
+    name: "Vacances - Début"
+    has_date: true
+    has_time: true
+
+  vacances_fin:
+    name: "Vacances - Fin"
+    has_date: true
+    has_time: true
+
+  boost_fin:
+    name: "Boost - Fin"
+    has_date: true
+    has_time: true
+
+  teletravail_debut:
+    name: "Télétravail - Début"
+    has_date: true
+    has_time: true
+
+  teletravail_fin:
+    name: "Télétravail - Fin"
+    has_date: true
+    has_time: true
+
+  vacances_maison_debut:
+    name: "Vacances Maison - Début"
+    has_date: true
+    has_time: true
+
+  vacances_maison_fin:
+    name: "Vacances Maison - Fin"
+    has_date: true
+    has_time: true
+
+  weekend_prolonge_debut:
+    name: "Weekend Prolongé - Début"
+    has_date: true
+    has_time: true
+
+  weekend_prolonge_fin:
+    name: "Weekend Prolongé - Fin"
+    has_date: true
+    has_time: true
+
+  # Planning Normal - Semaine (heure uniquement)
+  planning_normal_lun_ven_matin_debut:
+    name: "Normal - Lun-Ven Matin Début"
+    has_date: false
+    has_time: true
+
+  planning_normal_lun_ven_matin_fin:
+    name: "Normal - Lun-Ven Matin Fin"
+    has_date: false
+    has_time: true
+
+  planning_normal_lundi_soir_debut:
+    name: "Normal - Lundi Soir Début"
+    has_date: false
+    has_time: true
+
+  planning_normal_lundi_soir_fin:
+    name: "Normal - Lundi Soir Fin"
+    has_date: false
+    has_time: true
+
+  planning_normal_mardi_soir_debut:
+    name: "Normal - Mardi Soir Début"
+    has_date: false
+    has_time: true
+
+  planning_normal_mardi_soir_fin:
+    name: "Normal - Mardi Soir Fin"
+    has_date: false
+    has_time: true
+
+  planning_normal_mercredi_soir_debut:
+    name: "Normal - Mercredi Soir Début"
+    has_date: false
+    has_time: true
+
+  planning_normal_mercredi_soir_fin:
+    name: "Normal - Mercredi Soir Fin"
+    has_date: false
+    has_time: true
+
+  planning_normal_jeudi_soir_debut:
+    name: "Normal - Jeudi Soir Début"
+    has_date: false
+    has_time: true
+
+  planning_normal_jeudi_soir_fin:
+    name: "Normal - Jeudi Soir Fin"
+    has_date: false
+    has_time: true
+
+  planning_normal_vendredi_soir_debut:
+    name: "Normal - Vendredi Soir Début"
+    has_date: false
+    has_time: true
+
+  planning_normal_vendredi_soir_fin:
+    name: "Normal - Vendredi Soir Fin"
+    has_date: false
+    has_time: true
+
+  # Planning Normal - Weekend
+  planning_normal_samedi_debut:
+    name: "Normal - Samedi Début"
+    has_date: false
+    has_time: true
+
+  planning_normal_samedi_fin:
+    name: "Normal - Samedi Fin"
+    has_date: false
+    has_time: true
+
+  planning_normal_dimanche_debut:
+    name: "Normal - Dimanche Début"
+    has_date: false
+    has_time: true
+
+  planning_normal_dimanche_fin:
+    name: "Normal - Dimanche Fin"
+    has_date: false
+    has_time: true
+
+  # Planning Télétravail 7j/7
+  planning_teletravail_lundi_debut:
+    name: "Télétravail - Lundi Début"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_lundi_fin:
+    name: "Télétravail - Lundi Fin"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_mardi_debut:
+    name: "Télétravail - Mardi Début"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_mardi_fin:
+    name: "Télétravail - Mardi Fin"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_mercredi_debut:
+    name: "Télétravail - Mercredi Début"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_mercredi_fin:
+    name: "Télétravail - Mercredi Fin"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_jeudi_debut:
+    name: "Télétravail - Jeudi Début"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_jeudi_fin:
+    name: "Télétravail - Jeudi Fin"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_vendredi_debut:
+    name: "Télétravail - Vendredi Début"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_vendredi_fin:
+    name: "Télétravail - Vendredi Fin"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_samedi_debut:
+    name: "Télétravail - Samedi Début"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_samedi_fin:
+    name: "Télétravail - Samedi Fin"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_dimanche_debut:
+    name: "Télétravail - Dimanche Début"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_dimanche_fin:
+    name: "Télétravail - Dimanche Fin"
+    has_date: false
+    has_time: true
+
+  # Planning Vacances Maison et Weekend Prolongé
+  planning_vacances_maison_debut:
+    name: "Vacances Maison - Début"
+    has_date: false
+    has_time: true
+
+  planning_vacances_maison_fin:
+    name: "Vacances Maison - Fin"
+    has_date: false
+    has_time: true
+
+  planning_weekend_prolonge_debut:
+    name: "Weekend Prolongé - Début"
+    has_date: false
+    has_time: true
+
+  planning_weekend_prolonge_fin:
+    name: "Weekend Prolongé - Fin"
+    has_date: false
+    has_time: true
+
+input_select:
+
+  selecteur_planning_config:
+    name: "Planning à Configurer"
+    options:
+      - "📅 Planning Normal"
+      - "💼 Planning Télétravail"
+      - "🏖️ Planning Vacances Maison"
+      - "🎉 Planning Weekend Prolongé"
+    initial: "📅 Planning Normal"
+    icon: mdi:calendar-edit
+
+template:
+  - sensor:
+      # Température corrigée RDC (-0.5°C offset capteur)
+      - name: "Température RDC Corrigée"
+        unique_id: temperature_rdc_corrigee
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        state: >
+          {% set temp_brute = states('sensor.snzb_02d_rdc_z2m_temperature') | float(None) %}
+          {% if temp_brute == None or temp_brute < 5 or temp_brute > 40 %}
+          {{ this.state | float(20) }}
+          {% else %}
+          {% set correction = -0.5 %}
+          {{ (temp_brute + correction) | round(1) }}
+          {% endif %}
+        availability: >
+          {{ states('sensor.snzb_02d_rdc_z2m_temperature') not in ['unavailable', 'unknown', 'none'] }}
+        icon: mdi:thermometer
+
+      # Prochain bloc Télétravail (depuis input_datetime)
+      - name: "Prochain Bloc Télétravail"
+        unique_id: prochain_bloc_teletravail
+        state: >
+          {% set debut = states('input_datetime.teletravail_debut') %}
+          {% set fin = states('input_datetime.teletravail_fin') %}
+          {% if debut != 'unknown' and fin != 'unknown' %}
+            {% set debut_dt = as_timestamp(debut) | timestamp_custom('%d/%m %Hh%M') %}
+            {% set fin_dt = as_timestamp(fin) | timestamp_custom('%d/%m %Hh%M') %}
+            {{ debut_dt }} → {{ fin_dt }}
+          {% else %}
+            Aucun
+          {% endif %}
+        icon: mdi:calendar-clock
+        attributes:
+          debut: "{{ states('input_datetime.teletravail_debut') }}"
+          fin: "{{ states('input_datetime.teletravail_fin') }}"
+          actif: >
+            {% set now_ts = now().timestamp() %}
+            {% set debut_ts = as_timestamp(states('input_datetime.teletravail_debut')) %}
+            {% set fin_ts = as_timestamp(states('input_datetime.teletravail_fin')) %}
+            {{ debut_ts <= now_ts <= fin_ts if debut_ts and fin_ts else false }}

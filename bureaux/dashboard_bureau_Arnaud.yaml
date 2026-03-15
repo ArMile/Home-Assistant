@@ -1,0 +1,519 @@
+views:
+  - title: Bureau Arnaud
+    path: bureau-arnaud
+    icon: mdi:desk
+    type: custom:horizontal-layout
+    layout:
+      width: 500
+      max_cols: 2
+    cards:
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-chips-card
+            alignment: left
+            chips:
+              - type: template
+                icon: mdi:home
+                content: Accueil
+                icon_color: blue
+                tap_action:
+                  action: navigate
+                  navigation_path: /dashboard-accueil/home
+          - type: custom:mushroom-title-card
+            title: 🖥️ Bureau Arnaud
+            subtitle: |
+              Gestion automatisée • {{ states('sensor.bureau_arnaud_power') }} W
+          - type: custom:mushroom-entity-card
+            entity: switch.bureau_arnaud
+            name: Switch Bureau
+            icon: mdi:power-plug
+            primary_info: name
+            secondary_info: last-changed
+            badge_icon: |
+              {% if is_state('switch.bureau_arnaud', 'on') %}
+                mdi:check-circle
+              {% else %}
+                mdi:close-circle
+              {% endif %}
+            badge_color: |
+              {% if is_state('switch.bureau_arnaud', 'on') %}
+                blue
+              {% else %}
+                red
+              {% endif %}
+            icon_color: |
+              {% if is_state('switch.bureau_arnaud', 'on') %}
+                blue
+              {% else %}
+                red
+              {% endif %}
+            tap_action:
+              action: toggle
+              haptic: medium
+            hold_action:
+              action: more-info
+            card_mod:
+              style: |
+                ha-card {
+                  {% if is_state('switch.bureau_arnaud', 'on') %}
+                    background: rgba(33, 150, 243, 0.1);
+                    border-left: 4px solid #2196F3;
+                  {% else %}
+                    background: rgba(244, 67, 54, 0.1);
+                    border-left: 4px solid #F44336;
+                  {% endif %}
+                  transition: all 0.3s ease;
+                }
+                ha-card:hover {
+                  transform: translateY(-2px);
+                  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                }
+          - type: custom:mushroom-title-card
+            title: 📅 Historique
+          - type: custom:mushroom-template-card
+            entity: input_datetime.bureau_arnaud_last_on
+            primary: >
+              {{ as_timestamp(states('input_datetime.bureau_arnaud_last_on')) |
+              timestamp_custom('%d/%m/%Y à %H:%M', true) }}
+            secondary: >
+              Dernier allumage • Il y a {{
+              relative_time(states.input_datetime.bureau_arnaud_last_on.last_changed)
+              }}
+            icon: mdi:desktop-tower
+            icon_color: green
+            badge_icon: mdi:clock-outline
+            badge_color: green
+          - type: custom:mushroom-template-card
+            entity: input_datetime.bureau_arnaud_last_off
+            primary: >
+              {{ as_timestamp(states('input_datetime.bureau_arnaud_last_off')) |
+              timestamp_custom('%d/%m/%Y à %H:%M', true) }}
+            secondary: >
+              Dernière extinction • Il y a {{
+              relative_time(states.input_datetime.bureau_arnaud_last_off.last_changed)
+              }}
+            icon: mdi:power-off
+            icon_color: grey
+            badge_icon: mdi:clock-outline
+            badge_color: grey
+          - type: custom:mushroom-template-card
+            entity: input_datetime.bureau_arnaud_last_switch_off
+            primary: >
+              {{
+              as_timestamp(states('input_datetime.bureau_arnaud_last_switch_off'))
+              | timestamp_custom('%d/%m/%Y à %H:%M', true) }}
+            secondary: >
+              Dernière coupure switch • Il y a {{
+              relative_time(states.input_datetime.bureau_arnaud_last_switch_off.last_changed)
+              }}
+            icon: mdi:power-plug-off
+            icon_color: red
+            badge_icon: mdi:clock-outline
+            badge_color: red
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-title-card
+                title: ⚙️ Configuration Automations
+              - type: custom:mushroom-chips-card
+                chips:
+                  - type: template
+                    icon: >
+                      {% if is_state('input_boolean.mode_vacances', 'on') %}
+                        mdi:airplane
+                      {% elif is_state('input_boolean.chauffage_manuel', 'on')
+                      %}
+                        mdi:hand-back-right
+                      {% elif
+                      is_state('input_boolean.mode_planning_teletravail', 'on')
+                      %}
+                        mdi:briefcase
+                      {% elif
+                      is_state('input_boolean.mode_planning_vacances_maison',
+                      'on') %}
+                        mdi:beach
+                      {% elif
+                      is_state('input_boolean.mode_planning_weekend_prolonge',
+                      'on') %}
+                        mdi:party-popper
+                      {% else %}
+                        mdi:calendar-check
+                      {% endif %}
+                    content: >
+                      {% if is_state('input_boolean.mode_vacances', 'on') %}
+                        Vacances
+                      {% elif is_state('input_boolean.chauffage_manuel', 'on')
+                      %}
+                        Manuel
+                      {% elif
+                      is_state('input_boolean.mode_planning_teletravail', 'on')
+                      %}
+                        Télétravail
+                      {% elif
+                      is_state('input_boolean.mode_planning_vacances_maison',
+                      'on') %}
+                        Vacances Maison
+                      {% elif
+                      is_state('input_boolean.mode_planning_weekend_prolonge',
+                      'on') %}
+                        Weekend+
+                      {% else %}
+                        Planning Normal
+                      {% endif %}
+                    icon_color: |
+                      {% if is_state('input_boolean.mode_vacances', 'on') %}
+                        blue
+                      {% else %}
+                        green
+                      {% endif %}
+                    card_mod:
+                      style: |
+                        ha-card {
+                          animation: pulse 2s ease-in-out infinite;
+                        }
+                        @keyframes pulse {
+                          0%, 100% { opacity: 1; }
+                          50% { opacity: 0.6; }
+                        }
+                alignment: end
+          - type: custom:mushroom-entity-card
+            entity: input_boolean.bureau_arnaud_auto_coupure
+            name: Coupure automatique
+            icon: mdi:power-settings
+            icon_color: >
+              {% if is_state('input_boolean.bureau_arnaud_auto_coupure', 'on')
+              %}
+                green
+              {% else %}
+                red
+              {% endif %}
+            badge_icon: >
+              {% if is_state('input_boolean.bureau_arnaud_auto_coupure', 'on')
+              %}
+                mdi:check-bold
+              {% else %}
+                mdi:close-thick
+              {% endif %}
+            badge_color: >
+              {% if is_state('input_boolean.bureau_arnaud_auto_coupure', 'on')
+              %}
+                green
+              {% else %}
+                red
+              {% endif %}
+            tap_action:
+              action: toggle
+              haptic: medium
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                entity: input_datetime.bureau_arnaud_heure_limite_semaine
+                primary: >
+                  {{
+                  states('input_datetime.bureau_arnaud_heure_limite_semaine')[0:5]
+                  }}
+                secondary: Limite semaine
+                icon: mdi:clock-end
+                icon_color: orange
+                badge_icon: mdi:calendar-week
+                badge_color: orange
+                tap_action:
+                  action: more-info
+              - type: custom:mushroom-template-card
+                entity: input_datetime.bureau_arnaud_heure_limite_weekend
+                primary: >
+                  {{
+                  states('input_datetime.bureau_arnaud_heure_limite_weekend')[0:5]
+                  }}
+                secondary: Limite weekend
+                icon: mdi:clock-end
+                icon_color: purple
+                badge_icon: mdi:calendar-weekend
+                badge_color: purple
+                tap_action:
+                  action: more-info
+          - type: custom:mushroom-template-card
+            entity: input_datetime.bureau_arnaud_rallumage_matin
+            primary: |
+              {{ states('input_datetime.bureau_arnaud_rallumage_matin')[0:5] }}
+            secondary: Rallumage matinal
+            icon: mdi:weather-sunset-up
+            icon_color: amber
+            badge_icon: mdi:alarm
+            badge_color: amber
+            tap_action:
+              action: more-info
+          - type: custom:mushroom-entity-card
+            entity: calendar.jours_feries_en_france
+            name: Jours fériés
+            icon: mdi:calendar-star
+            icon_color: |
+              {% if is_state('calendar.jours_feries_en_france', 'on') %}
+                yellow
+              {% else %}
+                grey
+              {% endif %}
+            badge_icon: |
+              {% if is_state('calendar.jours_feries_en_france', 'on') %}
+                mdi:party-popper
+              {% else %}
+                mdi:calendar-blank
+              {% endif %}
+            badge_color: |
+              {% if is_state('calendar.jours_feries_en_france', 'on') %}
+                yellow
+              {% else %}
+                grey
+              {% endif %}
+            tap_action:
+              action: more-info
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-title-card
+            title: ⏱️ Temps de Fonctionnement
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                entity: sensor.bureau_arnaud_temps_on_aujourd_hui
+                primary: >
+                  {% set h = states('sensor.bureau_arnaud_temps_on_aujourd_hui')
+                  | float(0) | int %}
+
+                  {% set m =
+                  ((states('sensor.bureau_arnaud_temps_on_aujourd_hui') |
+                  float(0) - h) * 60) | int %}
+
+                  {{ h }}h {{ m }}m
+                secondary: >
+                  Aujourd'hui • {{
+                  ((states('sensor.bureau_arnaud_temps_on_aujourd_hui') |
+                  float(0) / 24) * 100) | round(0) }}%
+                icon: mdi:calendar-today
+                icon_color: green
+                badge_icon: mdi:chart-arc
+                badge_color: green
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(76, 175, 80, 0.1);
+                      border: 1px solid rgba(76, 175, 80, 0.3);
+                      transition: all 0.3s ease;
+                    }
+                    ha-card:hover {
+                      background: rgba(76, 175, 80, 0.15);
+                      transform: scale(1.02);
+                    }
+              - type: custom:mushroom-template-card
+                entity: sensor.bureau_arnaud_temps_on_semaine
+                primary: >
+                  {% set h = states('sensor.bureau_arnaud_temps_on_semaine') |
+                  float(0) | int %}
+
+                  {% set m = ((states('sensor.bureau_arnaud_temps_on_semaine') |
+                  float(0) - h) * 60) | int %}
+
+                  {{ h }}h {{ m }}m
+                secondary: >
+                  Semaine • {{ ((states('sensor.bureau_arnaud_temps_on_semaine')
+                  | float(0) / 168) * 100) | round(0) }}%
+                icon: mdi:calendar-week
+                icon_color: blue
+                badge_icon: mdi:chart-arc
+                badge_color: blue
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(33, 150, 243, 0.1);
+                      border: 1px solid rgba(33, 150, 243, 0.3);
+                      transition: all 0.3s ease;
+                    }
+                    ha-card:hover {
+                      background: rgba(33, 150, 243, 0.15);
+                      transform: scale(1.02);
+                    }
+              - type: custom:mushroom-template-card
+                entity: sensor.bureau_arnaud_temps_on_mois
+                primary: >
+                  {% set h = states('sensor.bureau_arnaud_temps_on_mois') |
+                  float(0) | int %}
+
+                  {% set m = ((states('sensor.bureau_arnaud_temps_on_mois') |
+                  float(0) - h) * 60) | int %}
+
+                  {{ h }}h {{ m }}m
+                secondary: >
+                  Mois • {{ ((states('sensor.bureau_arnaud_temps_on_mois') |
+                  float(0) / 720) * 100) | round(0) }}%
+                icon: mdi:calendar-month
+                icon_color: purple
+                badge_icon: mdi:chart-arc
+                badge_color: purple
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(156, 39, 176, 0.1);
+                      border: 1px solid rgba(156, 39, 176, 0.3);
+                      transition: all 0.3s ease;
+                    }
+                    ha-card:hover {
+                      background: rgba(156, 39, 176, 0.15);
+                      transform: scale(1.02);
+                    }
+              - type: custom:mushroom-template-card
+                entity: sensor.bureau_arnaud_temps_on_annee
+                primary: >
+                  {% set h = states('sensor.bureau_arnaud_temps_on_annee') |
+                  float(0) | int %}
+
+                  {{ h }}h
+                secondary: >
+                  Année • {{ ((states('sensor.bureau_arnaud_temps_on_annee') |
+                  float(0) / 8760) * 100) | round(1) }}%
+                icon: mdi:calendar
+                icon_color: deep-orange
+                badge_icon: mdi:chart-arc
+                badge_color: deep-orange
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(255, 87, 34, 0.1);
+                      border: 1px solid rgba(255, 87, 34, 0.3);
+                      transition: all 0.3s ease;
+                    }
+                    ha-card:hover {
+                      background: rgba(255, 87, 34, 0.15);
+                      transform: scale(1.02);
+                    }
+          - type: custom:mushroom-title-card
+            title: ⚡ Consommation Énergétique
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                entity: sensor.bureau_arnaud_conso_journaliere
+                primary: >
+                  {{ states('sensor.bureau_arnaud_conso_journaliere') | float(0)
+                  | round(2) }} kWh
+                secondary: Aujourd'hui
+                icon: mdi:flash
+                icon_color: green
+                badge_icon: mdi:lightning-bolt
+                badge_color: green
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(76, 175, 80, 0.1);
+                      border: 1px solid rgba(76, 175, 80, 0.3);
+                    }
+              - type: custom:mushroom-template-card
+                entity: sensor.bureau_arnaud_conso_hebdomadaire
+                primary: >
+                  {{ states('sensor.bureau_arnaud_conso_hebdomadaire') |
+                  float(0) | round(2) }} kWh
+                secondary: Semaine
+                icon: mdi:chart-line
+                icon_color: blue
+                badge_icon: mdi:lightning-bolt
+                badge_color: blue
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(33, 150, 243, 0.1);
+                      border: 1px solid rgba(33, 150, 243, 0.3);
+                    }
+              - type: custom:mushroom-template-card
+                entity: sensor.bureau_arnaud_conso_mensuelle
+                primary: >
+                  {{ states('sensor.bureau_arnaud_conso_mensuelle') | float(0) |
+                  round(2) }} kWh
+                secondary: Mois
+                icon: mdi:calendar-month-outline
+                icon_color: purple
+                badge_icon: mdi:lightning-bolt
+                badge_color: purple
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(156, 39, 176, 0.1);
+                      border: 1px solid rgba(156, 39, 176, 0.3);
+                    }
+              - type: custom:mushroom-template-card
+                entity: sensor.bureau_arnaud_conso_annuelle
+                primary: >
+                  {{ states('sensor.bureau_arnaud_conso_annuelle') | float(0) |
+                  round(2) }} kWh
+                secondary: Année
+                icon: mdi:calendar-star
+                icon_color: deep-orange
+                badge_icon: mdi:lightning-bolt
+                badge_color: deep-orange
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(255, 87, 34, 0.1);
+                      border: 1px solid rgba(255, 87, 34, 0.3);
+                    }
+          - type: custom:mushroom-entity-card
+            entity: sensor.bureau_arnaud_power
+            name: Puissance instantanée
+            icon: mdi:lightning-bolt
+            icon_color: |
+              {% set power = states('sensor.bureau_arnaud_power') | float(0) %}
+              {% if power > 100 %}
+                red
+              {% elif power > 50 %}
+                orange
+              {% elif power > 10 %}
+                amber
+              {% else %}
+                green
+              {% endif %}
+            primary_info: name
+            secondary_info: state
+            badge_icon: mdi:flash-triangle
+            badge_color: |
+              {% set power = states('sensor.bureau_arnaud_power') | float(0) %}
+              {% if power > 100 %}
+                red
+              {% elif power > 50 %}
+                orange
+              {% else %}
+                green
+              {% endif %}
+          - type: custom:mushroom-title-card
+            title: 📊 Historique Consommation
+          - type: custom:mini-graph-card
+            name: Consommation 24h
+            entities:
+              - entity: sensor.bureau_arnaud_power
+                name: Puissance
+                color: '#2196F3'
+            hours_to_show: 24
+            points_per_hour: 4
+            line_width: 3
+            font_size: 70
+            animate: true
+            show:
+              fill: fade
+              icon: true
+              name: true
+              state: true
+              labels: true
+            card_mod:
+              style: |
+                ha-card {
+                  background: rgba(33, 150, 243, 0.05);
+                  border: 1px solid rgba(33, 150, 243, 0.2);
+                  transition: all 0.3s ease;
+                }
+                ha-card:hover {
+                  background: rgba(33, 150, 243, 0.1);
+                  transform: translateY(-2px);
+                  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+                }
