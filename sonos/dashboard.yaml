@@ -1,0 +1,200 @@
+views:
+  - title: Lecteur
+    icon: mdi:play-circle
+    path: player
+    panel: true
+    cards:
+      - type: custom:sonos-card
+        entities:
+          - media_player.salle_a_manger
+          - media_player.portable
+        sections:
+          - player
+          - volumes
+          - groups
+          - grouping
+          - media browser
+          - queue
+        startSection: player
+        heightPercentage: 90
+        widthPercentage: 100
+        footerHeight: 3
+        title: ''
+        entityNameRegexToReplace: media_player\.
+        entityNameReplacement: ''
+        artworkAsBackground: true
+        artworkAsBackgroundBlur: 15
+        playerControlsAndHeaderBackgroundOpacity: 0.75
+        artworkMinHeight: 25
+        fallbackArtwork: https://cdn-icons-png.flaticon.com/512/3844/3844727.png
+        showVolumeUpAndDownButtons: true
+        hidePlayerControlShuffleButton: false
+        hidePlayerControlRepeatButton: false
+        showSourceInPlayer: true
+        showChannelInPlayer: true
+        showAudioInputFormat: true
+        showBrowseMediaInPlayerSection: true
+        volumeStepSize: 5
+        dynamicVolumeSlider: true
+        dynamicVolumeSliderThreshold: 20
+        skipApplyButtonWhenGrouping: true
+        predefinedGroups:
+          - name: 🏠 Toute la maison
+            volume: 30
+            entities:
+              - media_player.salle_a_manger
+              - media_player.portable
+          - name: 🍽️ Salle à manger
+            volume: 25
+            entities:
+              - media_player.salle_a_manger
+          - name: 🎒 Portable
+            volume: 20
+            entities:
+              - media_player.portable
+        favoritesItemsPerRow: 4
+        sortFavoritesByType: false
+        replaceHttpWithHttpsForThumbnails: true
+        card_mod:
+          style:
+            sonos-player$ sonos-player-controls$ sonos-volume$: |
+              ha-control-slider {
+                --control-slider-color: #ff9800 !important;
+                --control-slider-background: rgba(255, 152, 0, 0.2) !important;
+                --control-slider-thickness: 50px !important;
+              }
+            sonos-player$ sonos-player-controls$: |
+              .icons * {    
+                --mdc-icon-size: 2.8rem !important;
+                --mdc-icon-button-size: 3.5rem !important;
+              }
+              .big-icon {
+                --mdc-icon-size: 4.5rem !important;
+                --mdc-icon-button-size: 5.5rem !important;
+              }
+            sonos-player$ sonos-player-header$: |
+              .song {
+                font-size: 2rem !important;
+                font-weight: 700 !important;
+                text-shadow: 0 3px 15px rgba(0,0,0,0.9) !important;
+              }
+              .artist-album {
+                font-size: 1.2rem !important;
+                text-shadow: 0 2px 8px rgba(0,0,0,0.9) !important;
+              }
+            sonos-footer$ sonos-section-button$: |
+              ha-icon-button[selected] {
+                color: #ff9800 !important;
+              }
+  - title: Compact
+    icon: mdi:view-compact
+    path: compact
+    panel: true
+    cards:
+      - type: custom:sonos-card
+        entities:
+          - media_player.salle_a_manger
+          - media_player.portable
+        sections:
+          - player
+        heightPercentage: 60
+        widthPercentage: 100
+        footerHeight: 0
+        artworkAsBackground: true
+        artworkAsBackgroundBlur: 12
+        playerControlsAndHeaderBackgroundOpacity: 0.7
+        artworkMinHeight: 15
+        showVolumeUpAndDownButtons: true
+        hidePlayerControlShuffleButton: true
+        hidePlayerControlRepeatButton: true
+        playerControlsLargeIcons: true
+        card_mod:
+          style:
+            sonos-player$ sonos-player-controls$ sonos-volume$: |
+              ha-control-slider {
+                --control-slider-color: #ff9800 !important;
+                --control-slider-background: rgba(255, 152, 0, 0.2) !important;
+              }
+  - title: Favoris
+    icon: mdi:heart-multiple
+    path: favorites
+    panel: true
+    cards:
+      - type: custom:sonos-card
+        entities:
+          - media_player.salle_a_manger
+          - media_player.portable
+        sections:
+          - media browser
+        heightPercentage: 95
+        widthPercentage: 100
+        footerHeight: 0
+        mediaBrowserTitle: Mes Favoris
+        favoritesItemsPerRow: 5
+        sortFavoritesByType: true
+        replaceHttpWithHttpsForThumbnails: true
+        card_mod:
+          style:
+            sonos-media-browser$ sonos-media-browser-icons$: |
+              ha-control-button {
+                --control-button-padding: 12px !important;
+                --control-button-border-radius: 16px !important;
+                background: rgba(255, 255, 255, 0.05) !important;
+                margin: 8px !important;
+                transition: all 0.3s ease !important;
+              }
+              ha-control-button:hover {
+                background: rgba(255, 152, 0, 0.2) !important;
+                transform: scale(1.05) !important;
+              }
+  - title: Now Playing
+    icon: mdi:music-circle
+    path: nowplaying
+    panel: true
+    cards:
+      - type: custom:sonos-card
+        entities:
+          - media_player.salle_a_manger
+          - media_player.portable
+        sections:
+          - player
+        heightPercentage: 100
+        widthPercentage: 100
+        footerHeight: 0
+        artworkAsBackground: true
+        artworkAsBackgroundBlur: 20
+        playerControlsAndHeaderBackgroundOpacity: 0.8
+        artworkMinHeight: 35
+        showVolumeUpAndDownButtons: true
+        hidePlayerControlShuffleButton: true
+        hidePlayerControlRepeatButton: true
+        playerControlsLargeIcons: true
+        card_mod:
+          style:
+            sonos-player$ sonos-player-controls$: |
+              .icons * {    
+                --mdc-icon-size: 4rem !important;
+                --mdc-icon-button-size: 5rem !important;
+              }
+              .big-icon {
+                --mdc-icon-size: 6rem !important;
+                --mdc-icon-button-size: 7rem !important;
+              }
+            sonos-player$ sonos-player-header$: |
+              .song {
+                font-size: 3rem !important;
+                font-weight: 800 !important;
+                text-align: center !important;
+                text-shadow: 0 4px 20px rgba(0,0,0,1) !important;
+              }
+              .artist-album {
+                font-size: 1.5rem !important;
+                text-align: center !important;
+                text-shadow: 0 2px 10px rgba(0,0,0,1) !important;
+              }
+            sonos-player$ sonos-player-controls$ sonos-volume$: |
+              ha-control-slider {
+                --control-slider-color: #ff9800 !important;
+                --control-slider-background: rgba(255, 152, 0, 0.3) !important;
+                --control-slider-thickness: 60px !important;
+              }

@@ -1,0 +1,10 @@
+# ------------------------------------------------------------
+# 1.4 Systeme Musical Sonos
+# ------------------------------------------------------------
+sonos:
+  media_player:
+    advertise_addr: 192.168.xxx.xxx   # IP de Home Assistant joignable depuis le VLAN Sonos
+    hosts:
+      - 192.168.xxx.xxx               # IP Sonos Play:1 SaM
+      - 192.168.xxx.xxx               # IP Sonos Play:1 SaM
+      - 192.168.xxx.xxx               # IP Sonos Roam Portable

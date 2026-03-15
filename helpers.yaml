@@ -102,7 +102,7 @@ sensor: !include sensors.yaml
 homeassistant:
   latitude: 4x.xxxxxx  # Votre lieu de résidence
   longitude: 2.05
-  elevation: 116  # Mètres au-dessus du niveau de la mer
+  elevation: xxx  # Mètres au-dessus du niveau de la mer
   time_zone: Europe/Paris
   unit_system: metric
   currency: EUR
@@ -134,17 +134,6 @@ http:
     - 192.168.xxx.xxx   # IP de gestion Firewall/Reverse Proxy
   ip_ban_enabled: true
   login_attempts_threshold: 5
-
-# ------------------------------------------------------------
-# 1.4 Systeme Musical Sonos
-# ------------------------------------------------------------
-sonos:
-  media_player:
-    advertise_addr: 192.168.xxx.xxx   # IP de Home Assistant joignable depuis le VLAN Sonos
-    hosts:
-      - 192.168.xxx.xxx               # IP Sonos Play:1 SaM
-      - 192.168.xxx.xxx               # IP Sonos Play:1 SaM
-      - 192.168.xxx.xxx               # IP Sonos Roam Portable
 
 # ------------------------------------------------------------
 # 1.5 Switch Cisco 3650
