@@ -59,7 +59,7 @@ Utilisation des extentions HACS suivantes dans mes dashboards :
 - Lovelace Vacuum Map card (pour mon Dreame X50)
 - card-mod 4
 - layout-card
-- Sonos Card (loin d'être terminé)
+- Sonos Card
 - template-entity-row
 
 ## Sécurité
