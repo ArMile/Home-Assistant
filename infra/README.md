@@ -1,5 +1,10 @@
 # Infrastructures
 
+Permet de savoir quel est l'état du Quorum pour le cluster Proxmox
+- OK : 3 votants
+- DEGRADED : 2 votants. On a perdu un noeud Proxmox ou QNetd sur Odroid C2
+- CRITICAL : 1 seul votant. Le Quorum n'est plus assuré. Défaillance infra
+
 ![Dashboard : Quorum Proxmox"](screenshots/Dashboard_Quroum_Proxmox.png)
 
 Le dossier contient :
