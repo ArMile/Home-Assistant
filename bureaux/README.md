@@ -17,7 +17,6 @@ Les dashboards "Bureau Arnaud", "Bureau Julie" et "Bureau Maxence" s'appuient su
 Le dossier contient :
 - `helpers.yaml` — helpers HA (input_number, input_boolean, input_datetime, template sensors)
 - `automations.yaml` — automations liées à cette fonctionnalité
-- `automations_planning_tt.yaml` — automations liées à à la récupération des évènements Télétravail dans l'agenda Google
 - `sensors.yaml` — sensors
 - `dashboard_bureau_Arnaud.yaml` — Code YAML du dashboard Bureau Arnaud
 - `dashboard_bureau_Julie.yaml` — Code YAML du dashboard Bureau Julie
