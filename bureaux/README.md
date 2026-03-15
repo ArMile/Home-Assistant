@@ -3,7 +3,7 @@
 Gestion de la coupure/allumage des bureaux selon les modes de plannings (chauffage) actifs
 Calcul des temps de fonctionnement et consommations énergétiques.
 
-## Dashboard Accueil
+## Dashboards Bureaux
 
 ![Dashboard Bureau Arnaud](screenshots/dashboard_bureau_Arnaud.png)
 ![Dashboard Bureau Julie](screenshots/dashboard_bureau_Julie.png)
