@@ -1,0 +1,21 @@
+# Secrets - Ne JAMAIS commiter ce fichier
+secrets.yaml
+
+# Fichiers sensibles Home Assistant
+known_devices.yaml
+.storage/
+home-assistant_v2.db
+home-assistant.log
+home-assistant.log.1
+home-assistant.log.fault
+
+# Dossiers locaux HA
+deps/
+tts/
+.cloud/
+.google.token
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
