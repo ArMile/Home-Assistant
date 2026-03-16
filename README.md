@@ -20,6 +20,7 @@ Dans chaque dossier, vous retrouverez un fichier dashboard.yaml qui sera le code
 | 5 | [tv-salon/](tv-salon/) | Disjoncteur TV OLED — coupures automatiques avec délai refroidissement, rallumages planifiés selon modes de planning chauffage |
 | 6 | [bureaux/](bureaux/) | Switches Bureau Arnaud / Maxence / Julie — coupures auto, extinctions forcées, rallumages planifiés selon modes de planning chauffage |
 | 7 | [robot/](robot/) | Dreame X50 Ultra Complete — lancement automatique alarme, sélection pièces ordonnée |
+| 8 | [sonos/](sonos/) | Gestion de la plateforme SONOS|
 
 
 ## Stack technique
@@ -27,7 +28,7 @@ Dans chaque dossier, vous retrouverez un fichier dashboard.yaml qui sera le code
 - **Home Assistant** : HA OS, Zigbee2MQTT (coordinateur Sonoff Dongle Max Zigbee)
 - **Énergie** : ZLinky TIC Standard, ECU-R (pilotage production photovoltaïque), EDF Tempo
 - **Réseau** : OPNsense, Cisco Catalyst 3650-48PS, VLANs segmentés
-- **Infra** : Proxmox VE Cluster 2 nœuds + Corosync sur Odroid c2 pour Quorum, Synology RS4017xs+, APC SMC1000I-2UC
+- **Infra** : Proxmox VE Cluster 2 nœuds + Corosync sur Odroid C2 pour Quorum, Synology RS4017xs+, APC SMC1000I-2UC
 
 ## Utilisation
 
