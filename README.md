@@ -1,6 +1,7 @@
 # Home Assistant - Configuration & Détails
 
 Configuration complète de mon installation Home Assistant, organisée par fonctionnalité.
+23/03/2026 : Modification des graph Energie + Températures. Ajouts rapide Portail et portes de Garage. Redirection vers nouveau Dashboard "Modes Planing" sur chips clignotant du mode de planning actif
 
 ## Dashboard Accueil
 

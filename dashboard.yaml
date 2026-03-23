@@ -14,7 +14,7 @@ views:
           - type: vertical-stack
             cards:
               - type: custom:mushroom-template-card
-                primary: 🔥 Chauffage
+                primary: 🔥 Chauffage & ❄️ Climatisation
                 icon: mdi:arrow-right-circle
                 icon_color: orange
                 layout: horizontal
@@ -36,6 +36,8 @@ views:
                     }
               - type: conditional
                 conditions:
+                  - entity: input_boolean.chauffage_desactive_ete
+                    state: 'off'
                   - entity: input_boolean.chauffage_actif
                     state: 'on'
                 card:
@@ -44,9 +46,10 @@ views:
                     <div style="padding: 12px; text-align: center;">
                       🔥 <b>État Chauffage : <font color="#FF9800"><b>ALLUMÉ</b></font></b>
                     </div>
-                      
               - type: conditional
                 conditions:
+                  - entity: input_boolean.chauffage_desactive_ete
+                    state: 'off'
                   - entity: input_boolean.chauffage_actif
                     state: 'off'
                 card:
@@ -54,6 +57,16 @@ views:
                   content: |-
                     <div style="padding: 12px; text-align: center;">
                       ❄️ <b>État Chauffage : <font color="#F44336"><b>ÉTEINT</b></font></b>
+                    </div>
+              - type: conditional
+                conditions:
+                  - entity: input_boolean.chauffage_desactive_ete
+                    state: 'on'
+                card:
+                  type: markdown
+                  content: |-
+                    <div style="padding: 12px; text-align: center;">
+                      ❄️ <b>État Climatisation : <font color="#03A9F4"><b>MODE ÉTÉ</b></font></b>
                     </div>
               - type: custom:mushroom-chips-card
                 alignment: center
@@ -97,6 +110,9 @@ views:
                       'on') %}pink {% elif
                       is_state('input_boolean.mode_planning_weekend_prolonge',
                       'on') %}purple {% else %}green{% endif %}
+                    tap_action:
+                      action: navigate
+                      navigation_path: /modes-de-planning/etat-planning
                     card_mod:
                       style: |
                         ha-card {
@@ -129,15 +145,19 @@ views:
               - type: custom:mini-graph-card
                 entities:
                   - entity: sensor.temperature_rdc_corrigee
-                    name: RDC
+                    name: Couloir
                     color: '#FF6B6B'
                   - entity: sensor.thm_39134761
                     name: Entrée
-                    color: '#4ECDC4'
+                    color: '#FF9800'
                   - entity: sensor.thm_39134764
                     name: Étage
                     color: '#95E1D3'
                 hours_to_show: 12
+                offset: +2h
+                points_per_hour: 6
+                aggregate_func: last
+                group_by: interval
                 line_width: 1
                 font_size: 60
                 show:
@@ -168,7 +188,7 @@ views:
               - type: custom:mini-graph-card
                 entities:
                   - entity: sensor.zlinky_papp_power
-                    name: Consommation
+                    name: Consommation EDF
                     color: '#2196F3'
                   - entity: sensor.ecu_current_power
                     name: Production Solaire
@@ -177,6 +197,10 @@ views:
                     name: Injection Réseau
                     color: '#F44336'
                 hours_to_show: 12
+                points_per_hour: 12
+                offset: +2h
+                aggregate_func: last
+                group_by: interval
                 line_width: 1
                 font_size: 90
                 animate: true
@@ -195,10 +219,9 @@ views:
                     icon_color: amber
                   - type: template
                     icon: mdi:transmission-tower-export
-                    content: >-
-                      {{
-                      states('sensor.puissance_surplus_solaire')|float|round(0)
-                      }} W
+                    content: >
+                      {% set val = states('sensor.puissance_surplus_solaire') |
+                      float(0) | round(0) %} {{ val }} W
                     icon_color: red
               - type: markdown
                 content: |
@@ -341,6 +364,41 @@ views:
                     content: Garage 2
                     tap_action:
                       action: more-info
+              - type: horizontal-stack
+                cards:
+                  - type: custom:mushroom-template-card
+                    primary: Portail
+                    icon: mdi:gate
+                    icon_color: orange
+                    layout: vertical
+                    tap_action:
+                      action: toggle
+                      entity: switch.maison_portail
+                    hold_action:
+                      action: more-info
+                      entity: switch.maison_portail
+                  - type: custom:mushroom-template-card
+                    primary: Garage Julie
+                    icon: mdi:garage-variant
+                    icon_color: orange
+                    layout: vertical
+                    tap_action:
+                      action: toggle
+                      entity: switch.maison_garage_1
+                    hold_action:
+                      action: more-info
+                      entity: switch.maison_garage_1
+                  - type: custom:mushroom-template-card
+                    primary: Garage Arnaud
+                    icon: mdi:garage-variant
+                    icon_color: orange
+                    layout: vertical
+                    tap_action:
+                      action: toggle
+                      entity: switch.maison_garage_2
+                    hold_action:
+                      action: more-info
+                      entity: switch.maison_garage_2
           - type: vertical-stack
             cards:
               - type: custom:mushroom-template-card
