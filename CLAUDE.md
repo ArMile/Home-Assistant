@@ -15,6 +15,9 @@ The repository uses a **feature-module pattern**: each functional area lives in 
 - `dashboard.yaml` — Main home dashboard aggregating all views
 - `secrets.yaml.example` — Template for `secrets.yaml` (never committed); requires `gmail_password`, `alarm_code`, `cisco_password`
 
+### Internal files
+- `.claude/settings.local.json` — Claude AI configuration (local settings, not committed)
+
 ### Feature modules (each contains its own README, dashboard, automations, helpers, etc.)
 | Module | Purpose |
 |--------|---------|
@@ -23,6 +26,7 @@ The repository uses a **feature-module pattern**: each functional area lives in 
 | `ups-nas/` | APC UPS monitoring, automatic NAS/server shutdown on low battery |
 | `tv-salon/` | OLED TV circuit breaker with auto-shutoff and cooling delays |
 | `bureaux/` | 3 office desks — auto-shutoff, schedule-based restart, telework planning |
+| `modes-planning/` | Global planning mode management (extracted from chauffage for reuse across automations) |
 | `robot/` | Dreame X50 vacuum — alarm triggers, room selection |
 | `sonos/` | Sonos platform dashboard and helpers |
 | `infra/` | Infrastructure status (Proxmox, Cisco 3650, Synology) |
