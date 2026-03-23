@@ -7,19 +7,16 @@ Le dashboard est optimisé pour une tablette 8/10 pouces en mode paysage. Mais l
 
 Pluieurs vues dans le tableau pour allèger la navigation :
 - Chauffage
-- Etat Planning
-- Paramétrage Planning : Configuration des dates début/Fin de chaque mode 1. 🛫Vacances → 2. ✋Manuel → 3. 🔥Boost → 4. 💼Télétravail → 5. 🏖️Vac. Maison → 6. 🎉Weekend+ → 7. 📅Planning Normal → 8. 💚Éco. Mode Manuel et Mode Boost disponible. Synchrionisation (ou pas) des dates de vacances Scolaire pour parmamétrage auto du mode. Synchrionisation (ou pas) des Télétravails paramétrés dans le caldendrier Google avec Gestion de "blocs" pour parmamétrage auto du mode. 
-- Configuration des horaires pour chaque mode de planning (Normal / Vacances à la maison / Télétravail / Weekend Prolongé)
-- Historique pour voir quand le chauffage se déclenche et les températures mesurées et de consigne sur 24H
+- Historique pour voir quand le chauffage se déclenche et les températures mesurées et de consigne sur 24H.
+- Mode Saisonnier pour désactiver contact Sec du Poêle à granulés et basculer les climatisations en mode Clim été / Chauffage Hiver
+- Climatisation : Préparation du pilotage des climatisation individuellement par pièce (en contruction)
 
 ## Dashboard Chauffage
 
 ![Dashboard : Vue "Chauffage"](screenshots/dashboard_vue_chauffage.png)
-![Dashboard : Vue "Etat Planning"](screenshots/dashboard_vue_Etat_Planning.png)
-![Dashboard : Vue "Paramétrage Planning"](screenshots/dashboard_vue_Parametrage_Planning.png)
-![Dashboard : Vue "Config Horaires"](screenshots/dashboard_vue_Config_Horaires.png)
 ![Dashboard : Vue "Historique"](screenshots/dashboard_vue_Historique.png)
 ![Dashboard : Vue "Mode Saisonnier & Consignes"](screenshots/dashboard_vue_Mode_Saisonnier_et_Consignes.png)
+![Dashboard : Vue "Climatisation"](screenshots/dashboard_vue_climatisation.png)
 
 Le dossier contient :
 - `helpers.yaml` — helpers HA (input_number, input_boolean, input_datetime, template sensors)
