@@ -16,12 +16,13 @@ Dans chaque dossier, vous retrouverez un fichier dashboard.yaml qui sera le code
 |---|---|---|
 | 1 | [chauffage/](chauffage/) | Poêle à granulés — 8 modes de priorité, plannings dynamiques, sync vacances scolaires, syncro télétravail depuis agenda Google |
 | 2 | [energie-solaire/](energie-solaire/) | Surplus solaire → Ballon eau chaude (palier 2) + Frigo américain (3 paliers), ZLinky TIC Standard |
-| 3 | [ups-nas/](ups-nas/) | APC SMC1000I-2UC + NAS Synology — extinction automatique sur batterie faible |
-| 4 | [infra/](infra/) | Documentation infrastructure : Quorum Proxmox, Cisco 3650, Synology |
-| 5 | [tv-salon/](tv-salon/) | Disjoncteur TV OLED — coupures automatiques avec délai refroidissement, rallumages planifiés selon modes de planning chauffage |
-| 6 | [bureaux/](bureaux/) | Switches Bureau Arnaud / Maxence / Julie — coupures auto, extinctions forcées, rallumages planifiés selon modes de planning chauffage |
-| 7 | [robot/](robot/) | Dreame X50 Ultra Complete — lancement automatique alarme, sélection pièces ordonnée |
-| 8 | [sonos/](sonos/) | Gestion de la plateforme SONOS|
+| 3 | [modes-planning/](modes-planning/) | Gestion des Modes de Planning pour la gestion des automations (Séparé du Dashborad Chauffage) |
+| 4 | [ups-nas/](ups-nas/) | APC SMC1000I-2UC + NAS Synology — extinction automatique sur batterie faible |
+| 5 | [infra/](infra/) | Documentation infrastructure : Quorum Proxmox, Cisco 3650, Synology |
+| 6 | [tv-salon/](tv-salon/) | Disjoncteur TV OLED — coupures automatiques avec délai refroidissement, rallumages planifiés selon modes de planning chauffage |
+| 7 | [bureaux/](bureaux/) | Switches Bureau Arnaud / Maxence / Julie — coupures auto, extinctions forcées, rallumages planifiés selon modes de planning chauffage |
+| 8 | [robot/](robot/) | Dreame X50 Ultra Complete — lancement automatique alarme, sélection pièces ordonnée |
+| 9 | [sonos/](sonos/) | Gestion de la plateforme SONOS|
 
 
 ## Stack technique
