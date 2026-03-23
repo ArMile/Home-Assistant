@@ -19,3 +19,6 @@ tts/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Info Claude.ai
+.claude/settings.local.json
