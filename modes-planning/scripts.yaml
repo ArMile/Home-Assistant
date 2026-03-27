@@ -1,0 +1,667 @@
+# ============================================
+# RETOUR AU PLANNING NORMAL
+# ============================================
+planning_mode_normal:
+  alias: Retour Planning Normal
+  sequence:
+    - service: input_boolean.turn_off
+      target:
+        entity_id:
+          - input_boolean.mode_planning_teletravail
+          - input_boolean.mode_planning_vacances_maison
+          - input_boolean.mode_planning_weekend_prolonge
+    - service: notify.persistent_notification
+      data:
+        title: "📅 Planning Normal Activé"
+        message: "Retour au planning hebdomadaire normal"
+  mode: single
+  icon: mdi:calendar-check
+
+# ============================================
+# SCRIPT D'URGENCE - RÉINITIALISATION COMPLÈTE
+# ============================================
+reinitialiser_tous_plannings:
+  alias: "🔄 URGENCE - Réinitialiser tous les plannings"
+  description: "Script d'urgence pour désactiver tous les modes et réinitialiser les dates"
+  sequence:
+    # Étape 1 : Désactiver TOUS les modes spéciaux
+    - service: input_boolean.turn_off
+      target:
+        entity_id:
+          - input_boolean.mode_vacances
+          - input_boolean.mode_planning_teletravail
+          - input_boolean.mode_planning_vacances_maison
+          - input_boolean.mode_planning_weekend_prolonge
+          - input_boolean.boost_temperature
+          - input_boolean.chauffage_manuel
+
+    # Étape 2 : Réinitialiser les dates Mode Vacances (Absent)
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.vacances_debut
+      data:
+        datetime: "1970-01-01 00:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.vacances_fin
+      data:
+        datetime: "1970-01-01 23:00:00"
+
+    # Étape 3 : Réinitialiser les dates Télétravail
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.teletravail_debut
+      data:
+        datetime: "1970-01-01 00:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.teletravail_fin
+      data:
+        datetime: "1970-01-01 23:00:00"
+
+    # Étape 4 : Réinitialiser les dates Vacances Maison
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.vacances_maison_debut
+      data:
+        datetime: "1970-01-01 00:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.vacances_maison_fin
+      data:
+        datetime: "1970-01-01 23:00:00"
+
+    # Étape 5 : Réinitialiser les dates Weekend Prolongé
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.weekend_prolonge_debut
+      data:
+        datetime: "1970-01-01 00:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.weekend_prolonge_fin
+      data:
+        datetime: "1970-01-01 23:00:00"
+
+    # Étape 6 : Notification de réinitialisation
+    - service: notify.persistent_notification
+      data:
+        title: "🔄 Réinitialisation complète effectuée"
+        message: |
+          Tous les plannings spéciaux ont été désactivés et réinitialisés.
+          Le système est maintenant en mode Planning Normal.
+
+          États après réinitialisation :
+          - Mode Vacances (Absent) : OFF (dates : 01/01/1970)
+          - Mode Télétravail : OFF (dates : 01/01/1970)
+          - Mode Vacances Maison : OFF (dates : 01/01/1970)
+          - Mode Weekend Prolongé : OFF (dates : 01/01/1970)
+          - Mode Boost : OFF
+          - Mode Manuel : OFF
+
+          Le système suit maintenant le planning hebdomadaire normal.
+
+    # Étape 7 : Petit délai pour stabilisation
+    - delay:
+        seconds: 2
+
+    # Étape 8 : Retour explicite au mode normal
+    - service: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.mode_planning_normal
+
+  mode: single
+  icon: mdi:restart-alert
+
+# --------------------------------------------
+# 2. INITIALISATION Horaires Plannings à la première initialisation/démarrage
+#  (Normal/Télétravail/Vacances à la Maison/Weekend Prolongé)
+# --------------------------------------------
+initialiser_tous_horaires_planning:
+  alias: "Initialiser Tous les Horaires Planning"
+  sequence:
+    # ========================================
+    # PLANNING NORMAL
+    # ========================================
+    # Matin Lun-Ven
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_normal_lun_ven_matin_debut
+      data:
+        time: "06:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_normal_lun_ven_matin_fin
+      data:
+        time: "08:00:00"
+
+    # Lundi Soir
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_normal_lundi_soir_debut
+      data:
+        time: "17:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_normal_lundi_soir_fin
+      data:
+        time: "22:30:00"
+
+    # Mardi Soir
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_normal_mardi_soir_debut
+      data:
+        time: "17:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_normal_mardi_soir_fin
+      data:
+        time: "22:30:00"
+
+    # Mercredi Soir
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_normal_mercredi_soir_debut
+      data:
+        time: "15:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_normal_mercredi_soir_fin
+      data:
+        time: "22:30:00"
+
+    # Jeudi Soir
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_normal_jeudi_soir_debut
+      data:
+        time: "17:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_normal_jeudi_soir_fin
+      data:
+        time: "22:30:00"
+
+    # Vendredi Soir
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_normal_vendredi_soir_debut
+      data:
+        time: "17:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_normal_vendredi_soir_fin
+      data:
+        time: "22:30:00"
+
+    # Samedi
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_normal_samedi_debut
+      data:
+        time: "07:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_normal_samedi_fin
+      data:
+        time: "23:00:00"
+
+    # Dimanche
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_normal_dimanche_debut
+      data:
+        time: "07:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_normal_dimanche_fin
+      data:
+        time: "22:30:00"
+
+    # ========================================
+    # PLANNING TÉLÉTRAVAIL
+    # ========================================
+    # Lundi
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_teletravail_lundi_debut
+      data:
+        time: "06:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_teletravail_lundi_fin
+      data:
+        time: "22:30:00"
+
+    # Mardi
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_teletravail_mardi_debut
+      data:
+        time: "06:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_teletravail_mardi_fin
+      data:
+        time: "22:30:00"
+
+    # Mercredi
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_teletravail_mercredi_debut
+      data:
+        time: "06:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_teletravail_mercredi_fin
+      data:
+        time: "22:30:00"
+
+    # Jeudi
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_teletravail_jeudi_debut
+      data:
+        time: "06:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_teletravail_jeudi_fin
+      data:
+        time: "22:30:00"
+
+    # Vendredi
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_teletravail_vendredi_debut
+      data:
+        time: "06:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_teletravail_vendredi_fin
+      data:
+        time: "23:00:00"
+
+    # Samedi
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_teletravail_samedi_debut
+      data:
+        time: "07:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_teletravail_samedi_fin
+      data:
+        time: "23:00:00"
+
+    # Dimanche
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_teletravail_dimanche_debut
+      data:
+        time: "07:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_teletravail_dimanche_fin
+      data:
+        time: "22:30:00"
+
+    # ========================================
+    # PLANNING VACANCES MAISON
+    # ========================================
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_vacances_maison_debut
+      data:
+        time: "08:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_vacances_maison_fin
+      data:
+        time: "23:00:00"
+
+    # ========================================
+    # PLANNING WEEKEND PROLONGÉ
+    # ========================================
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_weekend_prolonge_debut
+      data:
+        time: "07:00:00"
+
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.planning_weekend_prolonge_fin
+      data:
+        time: "23:00:00"
+
+    # Marquer comme initialisé
+    - service: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.horaires_initialises
+
+    # Notification
+    - service: notify.persistent_notification
+      data:
+        title: "✅ Horaires Initialisés"
+        message: "Tous les horaires de planning ont été initialisés avec les valeurs par défaut. Vous pouvez maintenant les modifier librement."
+
+# =================================================================
+# SYNCHRONISATION MODE VACANCES MAISON DEPUIS CALENDRIER VACANCES SCOLAIRES
+# =================================================================
+sync_vacances_maison_depuis_calendrier:
+  alias: "Sync Vacances Maison depuis calendrier scolaire"
+  sequence:
+    - variables:
+        # États des sensors
+        current_state: "{{ states('sensor.vacances_fr_current_zone_b') }}"
+        next_state: "{{ states('sensor.vacances_fr_next_zone_b') }}"
+        tomorrow_vacances: "{{ is_state('binary_sensor.vacances_fr_tomorrow_zone_b', 'on') }}"
+
+        # Logique de sélection :
+        # - Si demain = vacances ET current existe → utiliser current (on est DANS ou JUSTE AVANT les vacances)
+        # - Sinon → utiliser next (on est APRÈS les vacances ou loin avant)
+        use_current: >
+          {{ tomorrow_vacances and current_state not in ['unknown', 'unavailable', 'Aucune'] }}
+
+        # Récupérer les dates du bon sensor
+        debut: >
+          {% if use_current %}
+            {{ state_attr('sensor.vacances_fr_current_zone_b', 'start_date') }}
+          {% else %}
+            {{ state_attr('sensor.vacances_fr_next_zone_b', 'start_date') }}
+          {% endif %}
+
+        fin: >
+          {% if use_current %}
+            {{ state_attr('sensor.vacances_fr_current_zone_b', 'end_date') }}
+          {% else %}
+            {{ state_attr('sensor.vacances_fr_next_zone_b', 'end_date') }}
+          {% endif %}
+
+        nom: >
+          {% if use_current %}
+            {{ states('sensor.vacances_fr_current_zone_b') }}
+          {% else %}
+            {{ states('sensor.vacances_fr_next_zone_b') }}
+          {% endif %}
+
+        statut: >
+          {% if use_current %}
+            EN COURS / DEMAIN
+          {% else %}
+            À VENIR
+          {% endif %}
+
+    # Vérifier que les données sont valides ET que les dates sont futures ou actuelles
+    - condition: template
+      value_template: >
+        {{ debut != none and fin != none and
+           as_timestamp(fin ~ ' 23:59:59') >= as_timestamp(now()) }}
+
+    # Mettre à jour le début
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.vacances_maison_debut
+      data:
+        date: "{{ debut }}"
+
+    # Mettre à jour la fin
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.vacances_maison_fin
+      data:
+        date: "{{ fin }}"
+
+    # Notification avec le statut
+    - service: notify.persistent_notification
+      data:
+        title: "🏖️ Vacances Maison synchronisées"
+        message: "{{ nom }} ({{ statut }}) : du {{ debut }} au {{ fin }}"
+
+# =================================================================
+# SYNCHRONISATION MODE TELETRAVAIL DEPUIS AGENDA Google
+# =================================================================
+sync_planning_teletravail:
+  alias: "Sync Planning Télétravail depuis calendrier"
+  fields:
+    notifier:
+      description: "Envoyer une notification"
+      example: true
+      default: false
+      selector:
+        boolean: {}
+  sequence:
+    # 0. Récupérer le paramètre
+    - variables:
+        send_notification: "{{ notifier | default(false) }}"
+        appel_manuel: "{{ this.context.parent_id == none }}"
+
+    - condition: template
+      value_template: >
+        {{ appel_manuel or
+           is_state('input_boolean.auto_sync_teletravail', 'on') }}
+
+    # 0b. Vérifier que pas en mode manuel
+    - condition: state
+      entity_id: input_boolean.teletravail_modification_manuelle
+      state: "off"
+
+    - service: logbook.log
+      data:
+        name: "Planning Télétravail"
+        message: "🔍 Démarrage analyse ({{ 'Manuel' if appel_manuel else 'Auto' }})"
+
+    # 1. Récupérer les événements de la semaine
+    - service: calendar.get_events
+      target:
+        entity_id: calendar.armile_juloul_gmail_com
+      data:
+        start_date_time: >
+          {% set today = now().date() %}
+          {% set week_start = today - timedelta(days=today.weekday()) %}
+          {{ week_start.strftime('%Y-%m-%d') }} 00:00:00
+        end_date_time: >
+          {% set today = now().date() %}
+          {% set week_end = today + timedelta(days=(6-today.weekday())) %}
+          {{ week_end.strftime('%Y-%m-%d') }} 23:59:59
+      response_variable: agenda_semaine
+
+    - service: logbook.log
+      data:
+        name: "Planning Télétravail"
+        message: "📅 {{ agenda_semaine['calendar.armile_juloul_gmail_com'].events | length }} événements trouvés"
+
+    # 2. Construire la liste des jours TT avec leurs dates
+    - variables:
+        jours_tt: >
+          {% set ns = namespace(jours=[]) %}
+          {% for event in agenda_semaine['calendar.armile_juloul_gmail_com'].events %}
+            {% set summary = event.summary | lower %}
+            {% if 'télétravail' in summary or 'teletravail' in summary or 'tt arnaud' in summary or 'tt julie' in summary or 'tt' == summary %}
+              {% if 'T' in event.start %}
+                {# Événement avec horaire explicite #}
+                {% set date_jour = event.start[:10] %}
+                {% set heure_debut = event.start[11:19] %}
+                {% set heure_fin = event.end[11:19] %}
+              {% else %}
+                {# Événement toute la journée - horaires selon la personne #}
+                {% set date_jour = event.start %}
+                {% if 'julie' in summary %}
+                  {% set heure_debut = '06:00:00' %}
+                  {% set heure_fin = '17:00:00' %}
+                {% else %}
+                  {# Par défaut Arnaud ou TT générique #}
+                  {% set heure_debut = '07:30:00' %}
+                  {% set heure_fin = '18:00:00' %}
+                {% endif %}
+              {% endif %}
+              {% set jour_dict = {
+                'date': date_jour,
+                'debut': date_jour ~ ' ' ~ heure_debut,
+                'fin': date_jour ~ ' ' ~ heure_fin,
+                'weekday': as_timestamp(date_jour ~ ' 12:00:00') | timestamp_custom('%w') | int,
+                'summary': event.summary
+              } %}
+              {% set ns.jours = ns.jours + [jour_dict] %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.jours | sort(attribute='date') }}
+
+    - service: logbook.log
+      data:
+        name: "Planning Télétravail"
+        message: "🏠 {{ jours_tt | length }} jours TT trouvés"
+
+    # 3. CHOOSE - Traiter selon qu'on a des événements ou pas
+    - choose:
+        # CAS 1 : On a trouvé des événements TT
+        - conditions:
+            - condition: template
+              value_template: "{{ jours_tt | length > 0 }}"
+          sequence:
+            # 3a. Identifier les blocs consécutifs
+            - variables:
+                blocs: >
+                  {% set ns = namespace(blocs=[], bloc_actuel=[]) %}
+                  {% for jour in jours_tt %}
+                    {% if ns.bloc_actuel | length == 0 %}
+                      {# Premier jour du bloc #}
+                      {% set ns.bloc_actuel = [jour] %}
+                    {% else %}
+                      {# Vérifier si consécutif (pas de weekend entre deux) #}
+                      {% set dernier_jour = ns.bloc_actuel[-1] %}
+                      {% set dernier_weekday = dernier_jour.weekday %}
+                      {% set actuel_weekday = jour.weekday %}
+                      {% set diff_jours = (as_timestamp(jour.date ~ ' 12:00:00') - as_timestamp(dernier_jour.date ~ ' 12:00:00')) / 86400 %}
+
+                      {# Consécutif si : même jour ou jour suivant ET pas de weekend #}
+                      {% set est_consecutif = (diff_jours == 1 and dernier_weekday < 5) or diff_jours == 0 %}
+
+                      {% if est_consecutif %}
+                        {# Ajouter au bloc actuel #}
+                        {% set ns.bloc_actuel = ns.bloc_actuel + [jour] %}
+                      {% else %}
+                        {# Fermer le bloc actuel et en commencer un nouveau #}
+                        {% set ns.blocs = ns.blocs + [ns.bloc_actuel] %}
+                        {% set ns.bloc_actuel = [jour] %}
+                      {% endif %}
+                    {% endif %}
+                  {% endfor %}
+                  {# Ne pas oublier le dernier bloc #}
+                  {% if ns.bloc_actuel | length > 0 %}
+                    {% set ns.blocs = ns.blocs + [ns.bloc_actuel] %}
+                  {% endif %}
+                  {{ ns.blocs }}
+
+            - service: logbook.log
+              data:
+                name: "Planning Télétravail"
+                message: "📊 {{ blocs | length }} bloc(s) identifié(s)"
+
+            # 3b. Déterminer le bloc à utiliser
+            - variables:
+                now_date: "{{ now().strftime('%Y-%m-%d') }}"
+                bloc_a_utiliser: >
+                  {% set ns = namespace(bloc=none) %}
+                  {% set maintenant_ts = now().timestamp() %}
+
+                  {# Chercher le bloc actif ou à venir EN PRIORITÉ #}
+                  {% for bloc in blocs %}
+                    {% set debut_bloc = bloc[0].debut %}
+                    {% set fin_bloc = bloc[-1].fin %}
+                    {% set debut_ts = as_timestamp(debut_bloc) %}
+                    {% set fin_ts = as_timestamp(fin_bloc) %}
+
+                    {# Si on est dans le bloc OU si le bloc est dans le futur #}
+                    {% if (debut_ts <= maintenant_ts <= fin_ts) or (debut_ts > maintenant_ts) %}
+                      {% if ns.bloc == none %}
+                        {% set dates_uniques = bloc | map(attribute='date') | unique | list %}
+                        {% set ns.bloc = {'debut': debut_bloc, 'fin': fin_bloc, 'jours': dates_uniques | length} %}
+                      {% endif %}
+                    {% endif %}
+                  {% endfor %}
+
+                  {# Si aucun bloc actif/futur, prendre le DERNIER bloc de la semaine #}
+                  {% if ns.bloc == none and blocs | length > 0 %}
+                    {% set dernier_bloc = blocs[-1] %}
+                    {% set debut_bloc = dernier_bloc[0].debut %}
+                    {% set fin_bloc = dernier_bloc[-1].fin %}
+                    {% set dates_uniques = dernier_bloc | map(attribute='date') | unique | list %}
+                    {% set ns.bloc = {'debut': debut_bloc, 'fin': fin_bloc, 'jours': dates_uniques | length} %}
+                  {% endif %}
+
+                  {{ ns.bloc }}
+
+            - service: logbook.log
+              data:
+                name: "Planning Télétravail"
+                message: >
+                  📝 Bloc sélectionné: {{ bloc_a_utiliser.jours }} jour(s)
+                  {{ bloc_a_utiliser.debut }} → {{ bloc_a_utiliser.fin }}
+
+            # 3c. Mettre à jour les input_datetime
+            - service: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.teletravail_debut
+              data:
+                datetime: "{{ bloc_a_utiliser.debut }}"
+
+            - service: input_datetime.set_datetime
+              target:
+                entity_id: input_datetime.teletravail_fin
+              data:
+                datetime: "{{ bloc_a_utiliser.fin }}"
+
+            # 3d. Log final
+            - service: logbook.log
+              data:
+                name: "Planning Télétravail"
+                message: "✅ Synchronisé: {{ bloc_a_utiliser.debut[:10] }} au {{ bloc_a_utiliser.fin[:10] }}"
+
+            # 3e. Notification si demandée
+            - condition: template
+              value_template: "{{ send_notification }}"
+
+            - service: notify.persistent_notification
+              data:
+                title: "🏠 Planning Télétravail synchronisé"
+                message: >
+                  {{ bloc_a_utiliser.jours }} jour(s) de télétravail
+                  Du {{ as_timestamp(bloc_a_utiliser.debut) | timestamp_custom('%d/%m à %Hh%M') }}
+                  au {{ as_timestamp(bloc_a_utiliser.fin) | timestamp_custom('%d/%m à %Hh%M') }}
+
+      # CAS 2 : Aucun événement TT trouvé cette semaine
+      default:
+        - service: logbook.log
+          data:
+            name: "Planning Télétravail"
+            message: "⚠️ Aucun événement télétravail trouvé cette semaine - Conservation des dates actuelles"
+
+        - condition: template
+          value_template: "{{ send_notification }}"
+
+        - service: notify.persistent_notification
+          data:
+            title: "⚠️ Planning Télétravail"
+            message: "Aucun événement télétravail trouvé cette semaine"

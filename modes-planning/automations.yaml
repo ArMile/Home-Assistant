@@ -1,0 +1,1345 @@
+# ============================================================
+# TABLE DES MATIÈRES - AUTOMATIONS MODES-PLANNING
+# Mise à jour : Mars 2026
+# ============================================================
+#
+# ┌─────────────────────────────────────────────────────────────┐
+# │ 1.  INITIALISATION                                   (1)    │
+# │     1.1  Phase 1 - Initialisation Automatique Horaires      │
+# ├─────────────────────────────────────────────────────────────┤
+# │ 7.  MODES DE PLANNING AVEC DATES                     (5)    │
+# │     7.1  Planning - Télétravail Auto (priorité 4)           │
+# │     7.2  Planning - Vacances Maison Auto (priorité 5)       │
+# │     7.3  Planning - Weekend Prolongé Auto (priorité 6)      │
+# │     7.4  Planning - Bloquer si Vacances                     │
+# │     7.5  Planning - Exclusion Mutuelle                      │
+# ├─────────────────────────────────────────────────────────────┤
+# │ 8.  PROTECTION & NETTOYAGE                           (4)    │
+# │     8.1  Protection - Vérification dates hors plage         │
+# │     8.2  Protection - Anti-boucle notifications             │
+# │     9.1  Nettoyage Périodes - Modes Planning                │
+# │     9.2  Sync État Mode Normal                              │
+# ├─────────────────────────────────────────────────────────────┤
+# │ 9.  SYNC VACANCES SCOLAIRES                          (3)    │
+# │     9.3  Planning - Auto sync vacances maison               │
+# │     9.4  Planning - Clear vacances maison (binary off)      │
+# │     9.5  Planning - Clear vacances maison (23:00)           │
+# ├─────────────────────────────────────────────────────────────┤
+# │ 10. HORAIRES DYNAMIQUES PHASE 2                      (7)    │
+# │     10.1 Phase 2 - Planning Normal Matin                    │
+# │     10.2 Phase 2 - Planning Normal Soir Lun-Mar-Jeu-Ven     │
+# │     10.3 Phase 2 - Planning Normal Mercredi Soir            │
+# │     10.4 Phase 2 - Planning Normal Weekend                  │
+# │     10.5 Phase 2 - Planning Télétravail (7j)                │
+# │     10.6 Phase 2 - Planning Vacances Maison                 │
+# │     10.7 Phase 2 - Planning Weekend Prolongé                │
+# ├─────────────────────────────────────────────────────────────┤
+# │ 17. PLANNING TÉLÉTRAVAIL - SYNC CALENDRIER           (3)    │
+# │     17.1 Planning TT - Vérification périodique             │
+# │     17.2 Planning TT - Reset lundi matin                   │
+# │     17.3 Planning TT - Détection modification manuelle     │
+# └─────────────────────────────────────────────────────────────┘
+#
+# ============================================================
+
+# ============================================================
+# 1. INITIALISATION
+# ============================================================
+# --------------------------------------------
+# 1.1 INITIALISATION des Horaires Confort des Plannings
+# --------------------------------------------
+- alias: "Phase 1 - Initialisation Automatique Horaires"
+  description: "Initialise les horaires au premier démarrage uniquement"
+  trigger:
+    - platform: homeassistant
+      event: start
+  condition:
+    - condition: state
+      entity_id: input_boolean.horaires_initialises
+      state: "off"
+  action:
+    - delay:
+        seconds: 10
+    - service: script.initialiser_tous_horaires_planning
+  mode: single
+
+# ============================================================
+# 7. MODES DE PLANNING AVEC DATES
+# ============================================================
+# ============================================
+# 7. GESTION MODES DE PLANNING AVEC DATES
+# ============================================
+# --------------------------------------------
+# 7.1 MODE TÉLÉTRAVAIL - PRIORITÉ 4
+# --------------------------------------------
+- alias: "Planning - Télétravail Auto"
+  description: "Active/désactive le planning télétravail selon les dates"
+  trigger:
+    - platform: time_pattern
+      minutes: '/1'
+    - platform: state
+      entity_id:
+        - input_datetime.teletravail_debut
+        - input_datetime.teletravail_fin
+        - input_boolean.mode_planning_teletravail
+  action:
+    - choose:
+        # ACTIVATION
+        - conditions:
+            - condition: state
+              entity_id: input_boolean.mode_planning_teletravail
+              state: 'off'
+            - condition: template
+              value_template: >
+                {% set debut = states('input_datetime.teletravail_debut') %}
+                {% set fin = states('input_datetime.teletravail_fin') %}
+                {% if debut not in ['unknown', 'unavailable', 'none'] and fin not in ['unknown', 'unavailable', 'none'] %}
+                  {{ as_timestamp(now()) >= as_timestamp(debut) and as_timestamp(now()) <= as_timestamp(fin) }}
+                {% else %} false {% endif %}
+            - condition: state
+              entity_id: input_boolean.mode_vacances
+              state: 'off'
+            - condition: state
+              entity_id: input_boolean.chauffage_manuel
+              state: 'off'
+            - condition: state
+              entity_id: input_boolean.boost_temperature
+              state: 'off'
+          sequence:
+            - service: input_boolean.turn_on
+              target: {entity_id: input_boolean.mode_planning_teletravail}
+            - service: notify.persistent_notification
+              data:
+                title: 💼 Planning Télétravail Activé
+                message: |
+                  Planning Télétravail activé automatiquement.
+
+                  📅 Horaires de confort :
+                  • Lundi : {{ states('input_datetime.planning_teletravail_lundi_debut')[:-3] }} → {{ states('input_datetime.planning_teletravail_lundi_fin')[:-3] }}
+                  • Mardi : {{ states('input_datetime.planning_teletravail_mardi_debut')[:-3] }} → {{ states('input_datetime.planning_teletravail_mardi_fin')[:-3] }}
+                  • Mercredi : {{ states('input_datetime.planning_teletravail_mercredi_debut')[:-3] }} → {{ states('input_datetime.planning_teletravail_mercredi_fin')[:-3] }}
+                  • Jeudi : {{ states('input_datetime.planning_teletravail_jeudi_debut')[:-3] }} → {{ states('input_datetime.planning_teletravail_jeudi_fin')[:-3] }}
+                  • Vendredi : {{ states('input_datetime.planning_teletravail_vendredi_debut')[:-3] }} → {{ states('input_datetime.planning_teletravail_vendredi_fin')[:-3] }}
+                  • Samedi : {{ states('input_datetime.planning_teletravail_samedi_debut')[:-3] }} → {{ states('input_datetime.planning_teletravail_samedi_fin')[:-3] }}
+                  • Dimanche : {{ states('input_datetime.planning_teletravail_dimanche_debut')[:-3] }} → {{ states('input_datetime.planning_teletravail_dimanche_fin')[:-3] }}
+
+                  🗓️ Du {{ as_timestamp(states('input_datetime.teletravail_debut')) | timestamp_custom('%d/%m/%Y à %H:%M') }} au {{ as_timestamp(states('input_datetime.teletravail_fin')) | timestamp_custom('%d/%m/%Y à %H:%M') }}
+
+        # DÉSACTIVATION
+        - conditions:
+            - condition: state
+              entity_id: input_boolean.mode_planning_teletravail
+              state: 'on'
+            - condition: template
+              value_template: >
+                {% set debut = states('input_datetime.teletravail_debut') %}
+                {% set fin = states('input_datetime.teletravail_fin') %}
+                {% if debut not in ['unknown', 'unavailable', 'none'] and fin not in ['unknown', 'unavailable', 'none'] %}
+                  {{ as_timestamp(now()) < as_timestamp(debut) or as_timestamp(now()) > as_timestamp(fin) }}
+                {% else %} false {% endif %}
+          sequence:
+            - service: input_boolean.turn_off
+              target: {entity_id: input_boolean.mode_planning_teletravail}
+            - service: notify.persistent_notification
+              data:
+                title: 🏢 Fin Télétravail
+                message: Retour au planning normal
+  mode: single
+
+# --------------------------------------------
+# 7.2 MODE VACANCES À LA MAISON - PRIORITÉ 5
+# --------------------------------------------
+- alias: "Planning - Vacances Maison Auto"
+  description: "Active/désactive le planning vacances maison selon les dates"
+  trigger:
+    - platform: time_pattern
+      minutes: '/1'
+    - platform: state
+      entity_id:
+        - input_datetime.vacances_maison_debut
+        - input_datetime.vacances_maison_fin
+        - input_boolean.mode_planning_vacances_maison
+  action:
+    - choose:
+        # ACTIVATION
+        - conditions:
+            - condition: state
+              entity_id: input_boolean.mode_planning_vacances_maison
+              state: 'off'
+            - condition: template
+              value_template: >
+                {% set debut = states('input_datetime.vacances_maison_debut') %}
+                {% set fin = states('input_datetime.vacances_maison_fin') %}
+                {% if debut not in ['unknown', 'unavailable', 'none'] and fin not in ['unknown', 'unavailable', 'none'] %}
+                  {{ as_timestamp(now()) >= as_timestamp(debut) and as_timestamp(now()) <= as_timestamp(fin) }}
+                {% else %} false {% endif %}
+            - condition: state
+              entity_id: input_boolean.mode_vacances
+              state: 'off'
+            - condition: state
+              entity_id: input_boolean.chauffage_manuel
+              state: 'off'
+            - condition: state
+              entity_id: input_boolean.boost_temperature
+              state: 'off'
+            - condition: state
+              entity_id: input_boolean.mode_planning_teletravail
+              state: 'off'
+          sequence:
+            - service: input_boolean.turn_on
+              target: {entity_id: input_boolean.mode_planning_vacances_maison}
+            - service: notify.persistent_notification
+              data:
+                title: 🏖️ Planning Vacances Maison Activé
+                message: >
+                  Planning Vacances Maison activé automatiquement.
+
+                  📅 Horaires de confort (7j/7) :
+                  {{ states('input_datetime.planning_vacances_maison_debut')[:-3] }} → {{ states('input_datetime.planning_vacances_maison_fin')[:-3] }}
+
+                  🗓️ Du {{ as_timestamp(states('input_datetime.vacances_maison_debut')) | timestamp_custom('%d/%m/%Y') }} au {{ as_timestamp(states('input_datetime.vacances_maison_fin')) | timestamp_custom('%d/%m/%Y') }}
+
+        # DÉSACTIVATION
+        - conditions:
+            - condition: state
+              entity_id: input_boolean.mode_planning_vacances_maison
+              state: 'on'
+            - condition: template
+              value_template: >
+                {% set debut = states('input_datetime.vacances_maison_debut') %}
+                {% set fin = states('input_datetime.vacances_maison_fin') %}
+                {% if debut not in ['unknown', 'unavailable', 'none'] and fin not in ['unknown', 'unavailable', 'none'] %}
+                  {{ as_timestamp(now()) < as_timestamp(debut) or as_timestamp(now()) > as_timestamp(fin) }}
+                {% else %} false {% endif %}
+          sequence:
+            - service: input_boolean.turn_off
+              target: {entity_id: input_boolean.mode_planning_vacances_maison}
+            - service: notify.persistent_notification
+              data:
+                title: 🏠 Fin Vacances Maison
+                message: Retour au planning normal
+  mode: single
+
+# --------------------------------------------
+# 7.3 MODE WEEKEND PROLONGÉ - PRIORITÉ 6
+# --------------------------------------------
+- alias: "Planning - Weekend Prolongé Auto"
+  description: "Active/désactive le planning weekend prolongé selon les dates"
+  trigger:
+    - platform: time_pattern
+      minutes: '/1'
+    - platform: state
+      entity_id:
+        - input_datetime.weekend_prolonge_debut
+        - input_datetime.weekend_prolonge_fin
+        - input_boolean.mode_planning_weekend_prolonge
+  action:
+    - choose:
+        # ACTIVATION
+        - conditions:
+            - condition: state
+              entity_id: input_boolean.mode_planning_weekend_prolonge
+              state: 'off'
+            - condition: template
+              value_template: >
+                {% set debut = states('input_datetime.weekend_prolonge_debut') %}
+                {% set fin = states('input_datetime.weekend_prolonge_fin') %}
+                {% if debut not in ['unknown', 'unavailable', 'none'] and fin not in ['unknown', 'unavailable', 'none'] %}
+                  {{ as_timestamp(now()) >= as_timestamp(debut) and as_timestamp(now()) <= as_timestamp(fin) }}
+                {% else %} false {% endif %}
+            - condition: state
+              entity_id: input_boolean.mode_vacances
+              state: 'off'
+            - condition: state
+              entity_id: input_boolean.chauffage_manuel
+              state: 'off'
+            - condition: state
+              entity_id: input_boolean.boost_temperature
+              state: 'off'
+            - condition: state
+              entity_id: input_boolean.mode_planning_teletravail
+              state: 'off'
+            - condition: state
+              entity_id: input_boolean.mode_planning_vacances_maison
+              state: 'off'
+          sequence:
+            - service: input_boolean.turn_on
+              target: {entity_id: input_boolean.mode_planning_weekend_prolonge}
+            - service: notify.persistent_notification
+              data:
+                title: 🎉 Planning Weekend Prolongé Activé
+                message: >
+                  Planning Weekend Prolongé activé automatiquement.
+
+                  📅 Horaires de confort (7j/7) :
+                  {{ states('input_datetime.planning_weekend_prolonge_debut')[:-3] }} → {{ states('input_datetime.planning_weekend_prolonge_fin')[:-3] }}
+
+                  🗓️ Du {{ as_timestamp(states('input_datetime.weekend_prolonge_debut')) | timestamp_custom('%d/%m/%Y') }} au {{ as_timestamp(states('input_datetime.weekend_prolonge_fin')) | timestamp_custom('%d/%m/%Y') }}
+
+        # DÉSACTIVATION
+        - conditions:
+            - condition: state
+              entity_id: input_boolean.mode_planning_weekend_prolonge
+              state: 'on'
+            - condition: template
+              value_template: >
+                {% set debut = states('input_datetime.weekend_prolonge_debut') %}
+                {% set fin = states('input_datetime.weekend_prolonge_fin') %}
+                {% if debut not in ['unknown', 'unavailable', 'none'] and fin not in ['unknown', 'unavailable', 'none'] %}
+                  {{ as_timestamp(now()) < as_timestamp(debut) or as_timestamp(now()) > as_timestamp(fin) }}
+                {% else %} false {% endif %}
+          sequence:
+            - service: input_boolean.turn_off
+              target: {entity_id: input_boolean.mode_planning_weekend_prolonge}
+            - service: notify.persistent_notification
+              data:
+                title: 🏡 Fin Weekend Prolongé
+                message: Retour au planning normal
+  mode: single
+
+# --------------------------------------------
+# 7.4 BLOQUER MODES DE PLANNING SI VACANCES (Absence)
+# --------------------------------------------
+- alias: "Planning - Bloquer si Vacances"
+  description: "Désactive les modes de planning alternatifs si mode vacances actif"
+  trigger:
+    - platform: state
+      entity_id:
+        - input_boolean.mode_planning_teletravail
+        - input_boolean.mode_planning_vacances_maison
+        - input_boolean.mode_planning_weekend_prolonge
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: input_boolean.mode_vacances
+      state: "on"
+  action:
+    - service: input_boolean.turn_off
+      target:
+        entity_id:
+          - input_boolean.mode_planning_teletravail
+          - input_boolean.mode_planning_vacances_maison
+          - input_boolean.mode_planning_weekend_prolonge
+    - service: notify.persistent_notification
+      data:
+        title: "⚠️ Planning Bloqué"
+        message: "Les modes de planning alternatifs sont désactivés pendant les vacances (absence)."
+  mode: restart
+
+# --------------------------------------------
+# 7.5 DÉSACTIVATION MUTUELLE DES PLANNINGS ALTERNATIFS
+# --------------------------------------------
+- alias: "Planning - Exclusion Mutuelle"
+  description: "Un seul planning alternatif actif à la fois"
+  trigger:
+    - platform: state
+      entity_id:
+        - input_boolean.mode_planning_teletravail
+        - input_boolean.mode_planning_vacances_maison
+        - input_boolean.mode_planning_weekend_prolonge
+      to: "on"
+  action:
+    - choose:
+        # Si Télétravail activé
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.entity_id == 'input_boolean.mode_planning_teletravail' }}"
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.mode_planning_vacances_maison
+                  - input_boolean.mode_planning_weekend_prolonge
+
+        # Si Vacances Maison activé
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.entity_id == 'input_boolean.mode_planning_vacances_maison' }}"
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.mode_planning_teletravail
+                  - input_boolean.mode_planning_weekend_prolonge
+
+        # Si Weekend Prolongé activé
+        - conditions:
+            - condition: template
+              value_template: "{{ trigger.entity_id == 'input_boolean.mode_planning_weekend_prolonge' }}"
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.mode_planning_teletravail
+                  - input_boolean.mode_planning_vacances_maison
+  mode: restart
+
+# ============================================================
+# 8. PROTECTION & NETTOYAGE
+# ============================================================
+# --------------------------------------------
+# 8.1 VÉRIFICATION QUOTIDIENNE DES DATES EXPIRÉES
+# --------------------------------------------
+- id: planning_verification_dates_expirees
+  alias: "Protection - Vérification dates hors plage"
+  description: "Vérifie si des plannings sont hors de leur plage de dates (avant début OU après fin)"
+  trigger:
+    # Vérification à minuit
+    - platform: time
+      at: "00:01:00"
+
+    # Vérification au démarrage de HA
+    - platform: homeassistant
+      event: start
+
+    # Vérification toutes les 5 minutes
+    - platform: time_pattern
+      minutes: "/5"
+
+    # Vérification immédiate si une date change
+    - platform: state
+      entity_id:
+        - input_datetime.teletravail_debut
+        - input_datetime.teletravail_fin
+        - input_datetime.vacances_maison_debut
+        - input_datetime.vacances_maison_fin
+        - input_datetime.weekend_prolonge_debut
+        - input_datetime.weekend_prolonge_fin
+        - input_datetime.vacances_debut
+        - input_datetime.vacances_fin
+
+  action:
+    # ========================================
+    # MODE VACANCES (ABSENT)
+    # ========================================
+    - if:
+        - condition: state
+          entity_id: input_boolean.mode_vacances
+          state: "on"
+        - condition: template
+          value_template: >
+            {% set debut = states('input_datetime.vacances_debut') %}
+            {% set fin = states('input_datetime.vacances_fin') %}
+            {% if debut not in ['unknown', 'unavailable', 'none', '1970-01-01 00:00:00'] and
+                  fin not in ['unknown', 'unavailable', 'none', '1970-01-01 23:00:00'] %}
+              {{ now() < (debut | as_datetime) or now() > (fin | as_datetime) }}
+            {% else %}
+              false
+            {% endif %}
+      then:
+        - service: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.mode_vacances
+        - service: notify.persistent_notification
+          data:
+            title: "⏰ Mode Vacances désactivé"
+            message: |
+              Le mode vacances est hors de sa plage de dates.
+              Période configurée : {{ as_timestamp(states('input_datetime.vacances_debut')) | timestamp_custom('%d/%m à %H:%M') }} - {{ as_timestamp(states('input_datetime.vacances_fin')) | timestamp_custom('%d/%m à %H:%M') }}
+              Retour au planning normal.
+
+    # ========================================
+    # TÉLÉTRAVAIL
+    # ========================================
+    - if:
+        - condition: state
+          entity_id: input_boolean.mode_planning_teletravail
+          state: "on"
+        - condition: template
+          value_template: >
+            {% set debut = states('input_datetime.teletravail_debut') %}
+            {% set fin = states('input_datetime.teletravail_fin') %}
+            {% if debut not in ['unknown', 'unavailable', 'none', '1970-01-01 00:00:00'] and
+                  fin not in ['unknown', 'unavailable', 'none', '1970-01-01 23:00:00'] %}
+              {{ now() < (debut | as_datetime) or now() > (fin | as_datetime) }}
+            {% else %}
+              false
+            {% endif %}
+      then:
+        - service: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.mode_planning_teletravail
+        - service: notify.persistent_notification
+          data:
+            title: "⏰ Planning Télétravail désactivé"
+            message: |
+              Le planning télétravail est hors de sa plage de dates.
+              Période configurée : {{ as_timestamp(states('input_datetime.teletravail_debut')) | timestamp_custom('%d/%m') }} - {{ as_timestamp(states('input_datetime.teletravail_fin')) | timestamp_custom('%d/%m') }}
+              Retour au planning normal.
+
+    # ========================================
+    # VACANCES MAISON
+    # ========================================
+    - if:
+        - condition: state
+          entity_id: input_boolean.mode_planning_vacances_maison
+          state: "on"
+        - condition: template
+          value_template: >
+            {% set debut = states('input_datetime.vacances_maison_debut') %}
+            {% set fin = states('input_datetime.vacances_maison_fin') %}
+            {% if debut not in ['unknown', 'unavailable', 'none', '1970-01-01 00:00:00'] and
+                  fin not in ['unknown', 'unavailable', 'none', '1970-01-01 23:00:00'] %}
+              {{ now() < (debut | as_datetime) or now() > (fin | as_datetime) }}
+            {% else %}
+              false
+            {% endif %}
+      then:
+        - service: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.mode_planning_vacances_maison
+        - service: notify.persistent_notification
+          data:
+            title: "⏰ Planning Vacances Maison désactivé"
+            message: |
+              Le planning vacances maison est hors de sa plage de dates.
+              Période configurée : {{ as_timestamp(states('input_datetime.vacances_maison_debut')) | timestamp_custom('%d/%m') }} - {{ as_timestamp(states('input_datetime.vacances_maison_fin')) | timestamp_custom('%d/%m') }}
+              Retour au planning normal.
+
+    # ========================================
+    # WEEKEND PROLONGÉ
+    # ========================================
+    - if:
+        - condition: state
+          entity_id: input_boolean.mode_planning_weekend_prolonge
+          state: "on"
+        - condition: template
+          value_template: >
+            {% set debut = states('input_datetime.weekend_prolonge_debut') %}
+            {% set fin = states('input_datetime.weekend_prolonge_fin') %}
+            {% if debut not in ['unknown', 'unavailable', 'none', '1970-01-01 00:00:00'] and
+                  fin not in ['unknown', 'unavailable', 'none', '1970-01-01 23:00:00'] %}
+              {{ now() < (debut | as_datetime) or now() > (fin | as_datetime) }}
+            {% else %}
+              false
+            {% endif %}
+      then:
+        - service: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.mode_planning_weekend_prolonge
+        - service: notify.persistent_notification
+          data:
+            title: "⏰ Planning Weekend Prolongé désactivé"
+            message: |
+              Le planning weekend prolongé est hors de sa plage de dates.
+              Période configurée : {{ as_timestamp(states('input_datetime.weekend_prolonge_debut')) | timestamp_custom('%d/%m') }} - {{ as_timestamp(states('input_datetime.weekend_prolonge_fin')) | timestamp_custom('%d/%m') }}
+              Retour au planning normal.
+  mode: single
+
+# --------------------------------------------
+# 8.2 PROTECTION ANTI-BOUCLE DE NOTIFICATIONS
+# --------------------------------------------
+- id: protection_anti_boucle_notifications
+  alias: "Protection - Anti-boucle notifications chauffage"
+  description: "Empêche les notifications en rafale en cas de dysfonctionnement"
+  mode: single
+  max_exceeded: silent
+  trigger:
+    - platform: state
+      entity_id: input_boolean.chauffage_actif
+  action:
+    - delay:
+        seconds: 30
+
+# --------------------------------------------
+# 9.1 NETTOYAGE DES PERIODES PLANNING
+# --------------------------------------------
+- alias: "Nettoyage Périodes- Modes Planning"
+  description: "Désactive les périodes qui ne correspondent plus au mode actif"
+  trigger:
+    - platform: state
+      entity_id:
+        - input_boolean.mode_planning_teletravail
+        - input_boolean.mode_planning_vacances_maison
+        - input_boolean.mode_planning_weekend_prolonge
+  action:
+    # Si on n'est PAS en télétravail, désactiver sa période
+    - choose:
+        - conditions:
+            - condition: state
+              entity_id: input_boolean.mode_planning_teletravail
+              state: "off"
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.periode_teletravail
+
+    # Si on n'est PAS en vacances maison, désactiver sa période
+    - choose:
+        - conditions:
+            - condition: state
+              entity_id: input_boolean.mode_planning_vacances_maison
+              state: "off"
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.periode_vacances_maison
+
+    # Si on n'est PAS en weekend prolongé, désactiver sa période
+    - choose:
+        - conditions:
+            - condition: state
+              entity_id: input_boolean.mode_planning_weekend_prolonge
+              state: "off"
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id: input_boolean.periode_weekend_prolonge
+  mode: restart
+
+# ============================================
+# 9.2 SYNCHRONISATION MODE PLANNING NORMAL
+# ============================================
+- alias: "Sync État Mode Normal"
+  description: "Synchronise l'état du mode normal avec les autres modes"
+  trigger:
+    - platform: state
+      entity_id:
+        - input_boolean.mode_planning_teletravail
+        - input_boolean.mode_planning_vacances_maison
+        - input_boolean.mode_planning_weekend_prolonge
+    - platform: homeassistant
+      event: start
+  action:
+    - choose:
+        # Si tous les modes spéciaux sont OFF → Mode Normal ON
+        - conditions:
+            - condition: state
+              entity_id: input_boolean.mode_planning_teletravail
+              state: "off"
+            - condition: state
+              entity_id: input_boolean.mode_planning_vacances_maison
+              state: "off"
+            - condition: state
+              entity_id: input_boolean.mode_planning_weekend_prolonge
+              state: "off"
+          sequence:
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.mode_planning_normal
+      # Sinon → Mode Normal OFF
+      default:
+        - service: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.mode_planning_normal
+  mode: restart
+
+# ============================================================
+# 9. SYNC VACANCES SCOLAIRES
+# ============================================================
+# ============================================
+# 9.3 SYNCHRONISATION AUTO MODE VACANCES MAISON DEPUIS CALENDRIER VACANCES SCOLAIRES
+# ============================================
+- alias: "Planning - Auto sync vacances maison"
+  description: "Synchronise automatiquement le planning Vacances Maison avec les vacances scolaires"
+  trigger:
+    # Quand le sensor des vacances EN COURS change
+    - platform: state
+      entity_id: sensor.vacances_fr_current_zone_b
+
+    # Quand le sensor des PROCHAINES vacances change
+    - platform: state
+      entity_id: sensor.vacances_fr_next_zone_b
+
+    # Quand le binary_sensor "demain" change (passage d'avant à pendant)
+    - platform: state
+      entity_id: binary_sensor.vacances_fr_tomorrow_zone_b
+      to: 'on'
+
+    # Quand on sort des vacances (demain passe à off)
+    - platform: state
+      entity_id: binary_sensor.vacances_fr_tomorrow_zone_b
+      to: 'off'
+
+    # Vérification quotidienne à 6h
+    - platform: time
+      at: "06:00:00"
+
+    # Vérification à minuit
+    - platform: time
+      at: "00:01:00"
+
+    # Au démarrage de Home Assistant
+    - platform: homeassistant
+      event: start
+
+  condition:
+    # Vérifier que la sync auto est activée
+    - condition: state
+      entity_id: input_boolean.auto_sync_vacances_scolaires
+      state: 'on'
+
+    # Vérifier qu'on a des données valides
+    - condition: or
+      conditions:
+        - condition: template
+          value_template: >
+            {{ states('sensor.vacances_fr_current_zone_b') not in ['unknown', 'unavailable', 'Aucune'] }}
+        - condition: template
+          value_template: >
+            {{ states('sensor.vacances_fr_next_zone_b') not in ['unknown', 'unavailable'] }}
+
+  action:
+    - service: script.sync_vacances_maison_depuis_calendrier
+
+# 9.4 CLEAR vacances maison après période (binary off)
+- alias: "Planning - Clear vacances maison après période"
+  description: "Efface les dates après vacances et sync avec prochaines"
+  trigger:
+    # Le lendemain de la fin des vacances (demain = off après avoir été on)
+    - platform: state
+      entity_id: binary_sensor.vacances_fr_tomorrow_zone_b
+      to: 'off'
+      for: "06:00:00"  # 6h après le passage à off = on est sûr d'être sorti
+
+  condition:
+    - condition: state
+      entity_id: input_boolean.auto_sync_vacances_scolaires
+      state: 'on'
+
+    # Vérifier qu'on a bien des prochaines vacances disponibles
+    - condition: template
+      value_template: >
+        {{ states('sensor.vacances_fr_next_zone_b') not in ['unknown', 'unavailable'] }}
+
+  action:
+    # Synchroniser avec les PROCHAINES vacances
+    - service: script.sync_vacances_maison_depuis_calendrier
+
+    # Notification
+    - service: notify.persistent_notification
+      data:
+        title: "🏖️ Vacances Maison"
+        message: "Vacances terminées. Planning mis à jour avec {{ states('sensor.vacances_fr_next_zone_b') }}."
+
+# 9.5 CLEAR vacances maison après période (23:00)
+- alias: "Planning - Clear vacances maison à 23h"
+  description: "Efface les dates de vacances maison après la fin de la période"
+  trigger:
+    - platform: time
+      at: "23:00:00"
+
+  condition:
+    - condition: state
+      entity_id: input_boolean.auto_sync_vacances_scolaires
+      state: 'on'
+
+    - condition: template
+      value_template: >
+        {% set fin = states('input_datetime.vacances_maison_fin') %}
+        {% if fin not in ['unknown', 'unavailable', ''] %}
+          {{ as_timestamp(fin) < (as_timestamp(now()) - 86400) }}
+        {% else %}
+          false
+        {% endif %}
+
+  action:
+    - service: input_datetime.set_datetime
+      target:
+        entity_id:
+          - input_datetime.vacances_maison_debut
+          - input_datetime.vacances_maison_fin
+      data:
+        date: "1970-01-01"
+
+    - service: notify.persistent_notification
+      data:
+        title: "🏖️ Vacances Maison"
+        message: "Planning effacé automatiquement (vacances terminées)"
+
+# ============================================================
+# 10. HORAIRES DYNAMIQUES - PHASE 2
+# ============================================================
+# ============================================
+# 10. Gestion des Horaires Dynamiques
+# ============================================
+# ============================================
+# 10.1 GESTION PLANNING NORMAL - MATIN
+# ============================================
+- alias: "Phase 2 - Planning Normal Matin"
+  description: "Gère la période matin du planning normal (Lun-Ven)"
+  trigger:
+    - platform: time_pattern
+      minutes: "/1"
+    - platform: homeassistant
+      event: start
+  condition:
+    # Seulement si planning normal actif
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    # Seulement en semaine
+    - condition: time
+      weekday:
+        - mon
+        - tue
+        - wed
+        - thu
+        - fri
+  action:
+    - choose:
+        # ACTIVATION
+        - conditions:
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_normal_lun_ven_matin_debut') %}
+                {% set fin = states('input_datetime.planning_normal_lun_ven_matin_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            # DÉSACTIVER TOUS LES AUTRES MODES
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_soir
+                  - input_boolean.periode_normal_weekend
+                  - input_boolean.periode_teletravail
+                  - input_boolean.periode_vacances_maison
+                  - input_boolean.periode_weekend_prolonge
+            # ACTIVER LE MODE MATIN
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_normal_matin
+      # DÉSACTIVATION
+      default:
+        - service: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.periode_normal_matin
+  mode: single
+
+# ============================================
+# 10.2 GESTION PLANNING NORMAL - SOIR (Lun-Mar-Jeu-Ven)
+# ============================================
+- alias: "Phase 2 - Planning Normal Soir Lun-Mar-Jeu-Ven"
+  description: "Gère la période soir du planning normal (Lun-Mar-Jeu-Ven)"
+  trigger:
+    - platform: time_pattern
+      minutes: "/1"
+    - platform: homeassistant
+      event: start
+  condition:
+    # Seulement si planning normal actif
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    # Seulement Lun-Mar-Jeu-Ven
+    - condition: time
+      weekday:
+        - mon
+        - tue
+        - thu
+        - fri
+  action:
+    - choose:
+        # LUNDI
+        - conditions:
+            - condition: time
+              weekday: [mon]
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_normal_lundi_soir_debut') %}
+                {% set fin = states('input_datetime.planning_normal_lundi_soir_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_matin
+                  - input_boolean.periode_normal_weekend
+                  - input_boolean.periode_teletravail
+                  - input_boolean.periode_vacances_maison
+                  - input_boolean.periode_weekend_prolonge
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_normal_soir
+
+        # MARDI
+        - conditions:
+            - condition: time
+              weekday: [tue]
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_normal_mardi_soir_debut') %}
+                {% set fin = states('input_datetime.planning_normal_mardi_soir_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_matin
+                  - input_boolean.periode_normal_weekend
+                  - input_boolean.periode_teletravail
+                  - input_boolean.periode_vacances_maison
+                  - input_boolean.periode_weekend_prolonge
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_normal_soir
+
+        # JEUDI
+        - conditions:
+            - condition: time
+              weekday: [thu]
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_normal_jeudi_soir_debut') %}
+                {% set fin = states('input_datetime.planning_normal_jeudi_soir_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_matin
+                  - input_boolean.periode_normal_weekend
+                  - input_boolean.periode_teletravail
+                  - input_boolean.periode_vacances_maison
+                  - input_boolean.periode_weekend_prolonge
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_normal_soir
+
+        # VENDREDI
+        - conditions:
+            - condition: time
+              weekday: [fri]
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_normal_vendredi_soir_debut') %}
+                {% set fin = states('input_datetime.planning_normal_vendredi_soir_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_matin
+                  - input_boolean.periode_normal_weekend
+                  - input_boolean.periode_teletravail
+                  - input_boolean.periode_vacances_maison
+                  - input_boolean.periode_weekend_prolonge
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_normal_soir
+      # DÉSACTIVATION
+      default:
+        - service: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.periode_normal_soir
+  mode: single
+
+# ============================================
+# 10.3 GESTION PLANNING NORMAL - MERCREDI SOIR
+# ============================================
+- alias: "Phase 2 - Planning Normal Mercredi Soir"
+  description: "Gère la période soir du mercredi (horaire spécial)"
+  trigger:
+    - platform: time_pattern
+      minutes: "/1"
+    - platform: homeassistant
+      event: start
+  condition:
+    # Seulement si planning normal actif
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    # Seulement mercredi
+    - condition: time
+      weekday:
+        - wed
+  action:
+    - choose:
+        # ACTIVATION
+        - conditions:
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_normal_mercredi_soir_debut') %}
+                {% set fin = states('input_datetime.planning_normal_mercredi_soir_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_matin
+                  - input_boolean.periode_normal_weekend
+                  - input_boolean.periode_teletravail
+                  - input_boolean.periode_vacances_maison
+                  - input_boolean.periode_weekend_prolonge
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_normal_soir
+      # DÉSACTIVATION
+      default:
+        - service: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.periode_normal_soir
+  mode: single
+
+# ============================================
+# 10.4 GESTION PLANNING NORMAL - WEEKEND
+# ============================================
+- alias: "Phase 2 - Planning Normal Weekend"
+  description: "Gère la période weekend du planning normal (Sam-Dim)"
+  trigger:
+    - platform: time_pattern
+      minutes: "/1"
+    - platform: homeassistant
+      event: start
+  condition:
+    # Seulement si planning normal actif
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "off"
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "off"
+    # Seulement Sam-Dim
+    - condition: time
+      weekday:
+        - sat
+        - sun
+  action:
+    - choose:
+        # SAMEDI
+        - conditions:
+            - condition: time
+              weekday: [sat]
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_normal_samedi_debut') %}
+                {% set fin = states('input_datetime.planning_normal_samedi_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_matin
+                  - input_boolean.periode_normal_soir
+                  - input_boolean.periode_teletravail
+                  - input_boolean.periode_vacances_maison
+                  - input_boolean.periode_weekend_prolonge
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_normal_weekend
+
+        # DIMANCHE
+        - conditions:
+            - condition: time
+              weekday: [sun]
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_normal_dimanche_debut') %}
+                {% set fin = states('input_datetime.planning_normal_dimanche_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_matin
+                  - input_boolean.periode_normal_soir
+                  - input_boolean.periode_teletravail
+                  - input_boolean.periode_vacances_maison
+                  - input_boolean.periode_weekend_prolonge
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_normal_weekend
+      # DÉSACTIVATION
+      default:
+        - service: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.periode_normal_weekend
+  mode: single
+
+# ============================================
+# 10.5 GESTION PLANNING TÉLÉTRAVAIL
+# ============================================
+- alias: "Phase 2 - Planning Télétravail"
+  description: "Gère la période télétravail (7j/7 avec horaires par jour)"
+  trigger:
+    - platform: time_pattern
+      minutes: "/1"
+    - platform: homeassistant
+      event: start
+  condition:
+    - condition: state
+      entity_id: input_boolean.mode_planning_teletravail
+      state: "on"
+  action:
+    - choose:
+        # LUNDI
+        - conditions:
+            - condition: time
+              weekday: [mon]
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_teletravail_lundi_debut') %}
+                {% set fin = states('input_datetime.planning_teletravail_lundi_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_matin
+                  - input_boolean.periode_normal_soir
+                  - input_boolean.periode_normal_weekend
+                  - input_boolean.periode_vacances_maison
+                  - input_boolean.periode_weekend_prolonge
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_teletravail
+
+        # MARDI
+        - conditions:
+            - condition: time
+              weekday: [tue]
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_teletravail_mardi_debut') %}
+                {% set fin = states('input_datetime.planning_teletravail_mardi_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_matin
+                  - input_boolean.periode_normal_soir
+                  - input_boolean.periode_normal_weekend
+                  - input_boolean.periode_vacances_maison
+                  - input_boolean.periode_weekend_prolonge
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_teletravail
+
+        # MERCREDI
+        - conditions:
+            - condition: time
+              weekday: [wed]
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_teletravail_mercredi_debut') %}
+                {% set fin = states('input_datetime.planning_teletravail_mercredi_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_matin
+                  - input_boolean.periode_normal_soir
+                  - input_boolean.periode_normal_weekend
+                  - input_boolean.periode_vacances_maison
+                  - input_boolean.periode_weekend_prolonge
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_teletravail
+
+        # JEUDI
+        - conditions:
+            - condition: time
+              weekday: [thu]
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_teletravail_jeudi_debut') %}
+                {% set fin = states('input_datetime.planning_teletravail_jeudi_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_matin
+                  - input_boolean.periode_normal_soir
+                  - input_boolean.periode_normal_weekend
+                  - input_boolean.periode_vacances_maison
+                  - input_boolean.periode_weekend_prolonge
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_teletravail
+
+        # VENDREDI
+        - conditions:
+            - condition: time
+              weekday: [fri]
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_teletravail_vendredi_debut') %}
+                {% set fin = states('input_datetime.planning_teletravail_vendredi_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_matin
+                  - input_boolean.periode_normal_soir
+                  - input_boolean.periode_normal_weekend
+                  - input_boolean.periode_vacances_maison
+                  - input_boolean.periode_weekend_prolonge
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_teletravail
+
+        # SAMEDI
+        - conditions:
+            - condition: time
+              weekday: [sat]
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_teletravail_samedi_debut') %}
+                {% set fin = states('input_datetime.planning_teletravail_samedi_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_matin
+                  - input_boolean.periode_normal_soir
+                  - input_boolean.periode_normal_weekend
+                  - input_boolean.periode_vacances_maison
+                  - input_boolean.periode_weekend_prolonge
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_teletravail
+
+        # DIMANCHE
+        - conditions:
+            - condition: time
+              weekday: [sun]
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_teletravail_dimanche_debut') %}
+                {% set fin = states('input_datetime.planning_teletravail_dimanche_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_matin
+                  - input_boolean.periode_normal_soir
+                  - input_boolean.periode_normal_weekend
+                  - input_boolean.periode_vacances_maison
+                  - input_boolean.periode_weekend_prolonge
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_teletravail
+      # DÉSACTIVATION
+      default:
+        - service: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.periode_teletravail
+  mode: single
+
+# ============================================
+# 10.6 GESTION PLANNING VACANCES MAISON
+# ============================================
+- alias: "Phase 2 - Planning Vacances Maison"
+  description: "Gère la période vacances maison (7j/7 horaire unique)"
+  trigger:
+    - platform: time_pattern
+      minutes: "/1"
+    - platform: homeassistant
+      event: start
+  condition:
+    - condition: state
+      entity_id: input_boolean.mode_planning_vacances_maison
+      state: "on"
+  action:
+    - choose:
+        # ACTIVATION
+        - conditions:
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_vacances_maison_debut') %}
+                {% set fin = states('input_datetime.planning_vacances_maison_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_matin
+                  - input_boolean.periode_normal_soir
+                  - input_boolean.periode_normal_weekend
+                  - input_boolean.periode_teletravail
+                  - input_boolean.periode_weekend_prolonge
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_vacances_maison
+      # DÉSACTIVATION
+      default:
+        - service: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.periode_vacances_maison
+  mode: single
+
+# ============================================
+# 10.7 GESTION PLANNING WEEKEND PROLONGÉ
+# ============================================
+- alias: "Phase 2 - Planning Weekend Prolongé"
+  description: "Gère la période weekend prolongé (7j/7 horaire unique)"
+  trigger:
+    - platform: time_pattern
+      minutes: "/1"
+    - platform: homeassistant
+      event: start
+  condition:
+    - condition: state
+      entity_id: input_boolean.mode_planning_weekend_prolonge
+      state: "on"
+  action:
+    - choose:
+        # ACTIVATION
+        - conditions:
+            - condition: template
+              value_template: >
+                {% set now_time = now().strftime('%H:%M:%S') %}
+                {% set debut = states('input_datetime.planning_weekend_prolonge_debut') %}
+                {% set fin = states('input_datetime.planning_weekend_prolonge_fin') %}
+                {{ debut <= now_time < fin }}
+          sequence:
+            - service: input_boolean.turn_off
+              target:
+                entity_id:
+                  - input_boolean.periode_normal_matin
+                  - input_boolean.periode_normal_soir
+                  - input_boolean.periode_normal_weekend
+                  - input_boolean.periode_teletravail
+                  - input_boolean.periode_vacances_maison
+            - service: input_boolean.turn_on
+              target:
+                entity_id: input_boolean.periode_weekend_prolonge
+      # DÉSACTIVATION
+      default:
+        - service: input_boolean.turn_off
+          target:
+            entity_id: input_boolean.periode_weekend_prolonge
+  mode: single

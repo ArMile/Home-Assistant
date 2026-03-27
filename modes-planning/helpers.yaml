@@ -1,0 +1,277 @@
+# ============================================================
+# MODES-PLANNING - HELPERS
+# Gestion des modes de planning : Normal, Télétravail,
+# Vacances Maison, Weekend Prolongé
+# Sync Google Calendar & vacances scolaires
+# ============================================================
+
+input_number:
+
+  # Timestamps Télétravail depuis agenda Google
+  tt_temp_debut_ts:
+    name: "TT Temp Début Timestamp"
+    min: 0
+    max: 9999999999
+    mode: box
+
+  tt_temp_fin_ts:
+    name: "TT Temp Fin Timestamp"
+    min: 0
+    max: 9999999999
+    mode: box
+
+input_boolean:
+
+  # Modes de planning actifs
+  mode_planning_normal:
+    name: Mode Planning Normal
+    icon: mdi:calendar-check
+
+  mode_planning_teletravail:
+    name: "Planning Télétravail"
+    icon: mdi:laptop
+
+  mode_planning_vacances_maison:
+    name: "Planning Vacances à la Maison"
+    icon: mdi:home-heart
+
+  mode_planning_weekend_prolonge:
+    name: "Planning Weekend Prolongé"
+    icon: mdi:calendar-weekend
+
+  # Initialisation horaires
+  horaires_initialises:
+    name: "Horaires Planning Initialisés"
+    icon: mdi:check-circle
+
+  # Sync Télétravail et Vacances scolaires
+  teletravail_modification_manuelle:
+    name: "Planning TT modifié manuellement"
+    icon: mdi:pencil
+
+  auto_sync_teletravail:
+    name: "Auto-sync Planning Télétravail"
+    icon: mdi:sync
+
+  auto_sync_vacances_scolaires:
+    name: "Sync auto vacances scolaires"
+    icon: mdi:school-sync
+
+input_datetime:
+
+  # Périodes modes spéciaux (avec date + heure)
+  teletravail_debut:
+    name: "Télétravail - Début"
+    has_date: true
+    has_time: true
+
+  teletravail_fin:
+    name: "Télétravail - Fin"
+    has_date: true
+    has_time: true
+
+  vacances_maison_debut:
+    name: "Vacances Maison - Début"
+    has_date: true
+    has_time: true
+
+  vacances_maison_fin:
+    name: "Vacances Maison - Fin"
+    has_date: true
+    has_time: true
+
+  weekend_prolonge_debut:
+    name: "Weekend Prolongé - Début"
+    has_date: true
+    has_time: true
+
+  weekend_prolonge_fin:
+    name: "Weekend Prolongé - Fin"
+    has_date: true
+    has_time: true
+
+  # Planning Normal - Semaine (heure uniquement)
+  planning_normal_lun_ven_matin_debut:
+    name: "Normal - Lun-Ven Matin Début"
+    has_date: false
+    has_time: true
+
+  planning_normal_lun_ven_matin_fin:
+    name: "Normal - Lun-Ven Matin Fin"
+    has_date: false
+    has_time: true
+
+  planning_normal_lundi_soir_debut:
+    name: "Normal - Lundi Soir Début"
+    has_date: false
+    has_time: true
+
+  planning_normal_lundi_soir_fin:
+    name: "Normal - Lundi Soir Fin"
+    has_date: false
+    has_time: true
+
+  planning_normal_mardi_soir_debut:
+    name: "Normal - Mardi Soir Début"
+    has_date: false
+    has_time: true
+
+  planning_normal_mardi_soir_fin:
+    name: "Normal - Mardi Soir Fin"
+    has_date: false
+    has_time: true
+
+  planning_normal_mercredi_soir_debut:
+    name: "Normal - Mercredi Soir Début"
+    has_date: false
+    has_time: true
+
+  planning_normal_mercredi_soir_fin:
+    name: "Normal - Mercredi Soir Fin"
+    has_date: false
+    has_time: true
+
+  planning_normal_jeudi_soir_debut:
+    name: "Normal - Jeudi Soir Début"
+    has_date: false
+    has_time: true
+
+  planning_normal_jeudi_soir_fin:
+    name: "Normal - Jeudi Soir Fin"
+    has_date: false
+    has_time: true
+
+  planning_normal_vendredi_soir_debut:
+    name: "Normal - Vendredi Soir Début"
+    has_date: false
+    has_time: true
+
+  planning_normal_vendredi_soir_fin:
+    name: "Normal - Vendredi Soir Fin"
+    has_date: false
+    has_time: true
+
+  # Planning Normal - Weekend
+  planning_normal_samedi_debut:
+    name: "Normal - Samedi Début"
+    has_date: false
+    has_time: true
+
+  planning_normal_samedi_fin:
+    name: "Normal - Samedi Fin"
+    has_date: false
+    has_time: true
+
+  planning_normal_dimanche_debut:
+    name: "Normal - Dimanche Début"
+    has_date: false
+    has_time: true
+
+  planning_normal_dimanche_fin:
+    name: "Normal - Dimanche Fin"
+    has_date: false
+    has_time: true
+
+  # Planning Télétravail 7j/7
+  planning_teletravail_lundi_debut:
+    name: "Télétravail - Lundi Début"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_lundi_fin:
+    name: "Télétravail - Lundi Fin"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_mardi_debut:
+    name: "Télétravail - Mardi Début"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_mardi_fin:
+    name: "Télétravail - Mardi Fin"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_mercredi_debut:
+    name: "Télétravail - Mercredi Début"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_mercredi_fin:
+    name: "Télétravail - Mercredi Fin"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_jeudi_debut:
+    name: "Télétravail - Jeudi Début"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_jeudi_fin:
+    name: "Télétravail - Jeudi Fin"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_vendredi_debut:
+    name: "Télétravail - Vendredi Début"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_vendredi_fin:
+    name: "Télétravail - Vendredi Fin"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_samedi_debut:
+    name: "Télétravail - Samedi Début"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_samedi_fin:
+    name: "Télétravail - Samedi Fin"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_dimanche_debut:
+    name: "Télétravail - Dimanche Début"
+    has_date: false
+    has_time: true
+
+  planning_teletravail_dimanche_fin:
+    name: "Télétravail - Dimanche Fin"
+    has_date: false
+    has_time: true
+
+  # Planning Vacances Maison et Weekend Prolongé
+  planning_vacances_maison_debut:
+    name: "Vacances Maison - Début"
+    has_date: false
+    has_time: true
+
+  planning_vacances_maison_fin:
+    name: "Vacances Maison - Fin"
+    has_date: false
+    has_time: true
+
+  planning_weekend_prolonge_debut:
+    name: "Weekend Prolongé - Début"
+    has_date: false
+    has_time: true
+
+  planning_weekend_prolonge_fin:
+    name: "Weekend Prolongé - Fin"
+    has_date: false
+    has_time: true
+
+input_select:
+
+  selecteur_planning_config:
+    name: "Planning à Configurer"
+    options:
+      - "📅 Planning Normal"
+      - "💼 Planning Télétravail"
+      - "🏖️ Planning Vacances Maison"
+      - "🎉 Planning Weekend Prolongé"
+    initial: "📅 Planning Normal"
+    icon: mdi:calendar-edit
