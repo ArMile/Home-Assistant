@@ -1,0 +1,29 @@
+# ============================================================
+# MODES-PLANNING - SENSORS
+# Capteurs template pour le module planning
+# ============================================================
+
+template:
+  - sensor:
+      # Prochain bloc Télétravail (depuis input_datetime)
+      - name: "Prochain Bloc Télétravail"
+        unique_id: prochain_bloc_teletravail
+        state: >
+          {% set debut = states('input_datetime.teletravail_debut') %}
+          {% set fin = states('input_datetime.teletravail_fin') %}
+          {% if debut != 'unknown' and fin != 'unknown' %}
+            {% set debut_dt = as_timestamp(debut) | timestamp_custom('%d/%m %Hh%M') %}
+            {% set fin_dt = as_timestamp(fin) | timestamp_custom('%d/%m %Hh%M') %}
+            {{ debut_dt }} → {{ fin_dt }}
+          {% else %}
+            Aucun
+          {% endif %}
+        icon: mdi:calendar-clock
+        attributes:
+          debut: "{{ states('input_datetime.teletravail_debut') }}"
+          fin: "{{ states('input_datetime.teletravail_fin') }}"
+          actif: >
+            {% set now_ts = now().timestamp() %}
+            {% set debut_ts = as_timestamp(states('input_datetime.teletravail_debut')) %}
+            {% set fin_ts = as_timestamp(states('input_datetime.teletravail_fin')) %}
+            {{ debut_ts <= now_ts <= fin_ts if debut_ts and fin_ts else false }}

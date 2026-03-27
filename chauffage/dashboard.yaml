@@ -2,8 +2,8 @@ views:
   - title: Chauffage
     path: chauffage-principal
     icon: mdi:radiator
-    theme: Backend-selected=default
     panel: true
+    theme: Backend-selected=default
     cards:
       - type: custom:layout-card
         layout_type: custom:grid-layout
@@ -87,7 +87,7 @@ views:
                 card:
                   type: custom:mushroom-template-card
                   entity: input_boolean.chauffage_actif
-                  primary: 🔥 Chauffage ALLUMÉ
+                  primary: 🔥 Poêle ALLUMÉ
                   secondary: ''
                   icon: mdi:fire
                   icon_color: deep-orange
@@ -103,7 +103,7 @@ views:
                 card:
                   type: custom:mushroom-template-card
                   entity: input_boolean.chauffage_actif
-                  primary: ❄️ Chauffage ÉTEINT
+                  primary: ❄️ Poêle ÉTEINT
                   secondary: ''
                   icon: mdi:snowflake
                   icon_color: light-blue
@@ -315,1213 +315,6 @@ views:
                             background: rgba(33, 150, 243, 0.1); border-left: 4px solid #2196F3;
                           {% endif %}
                         }
-  - title: État Planning
-    path: etat-planning
-    icon: mdi:information-variant-box-outline
-    panel: true
-    cards:
-      - type: custom:layout-card
-        layout_type: custom:grid-layout
-        layout:
-          grid-template-columns: 1fr 1fr
-          grid-template-rows: 1fr
-          grid-gap: 12px
-          margin: 0
-          padding: 12px
-        cards:
-          - type: vertical-stack
-            cards:
-              - type: custom:mushroom-title-card
-                title: 🎯 Mode Actif
-                subtitle: >
-                  {% if is_state('input_boolean.mode_vacances', 'on') %}
-                    🛫 Vacances (Absence) • {{ states('input_number.temp_vacances') }}°C
-                  {% elif is_state('input_boolean.chauffage_manuel', 'on') %}
-                    ✋ Manuel • {{ states('input_number.temp_consigne_manuelle') }}°C
-                  {% elif is_state('input_boolean.boost_temperature', 'on') %}
-                    🔥 Boost • {{ states('input_number.temp_consigne_active') }}°C
-                  {% elif is_state('input_boolean.mode_planning_teletravail',
-                  'on') %}
-                    💼 Télétravail • {{ states('input_number.temp_consigne_active') }}°C
-                  {% elif
-                  is_state('input_boolean.mode_planning_vacances_maison', 'on')
-                  %}
-                    🏖️ Vacances Maison • {{ states('input_number.temp_consigne_active') }}°C
-                  {% elif
-                  is_state('input_boolean.mode_planning_weekend_prolonge', 'on')
-                  %}
-                    🎉 Weekend Prolongé • {{ states('input_number.temp_consigne_active') }}°C
-                  {% else %}
-                    📅 Planning Normal • {{ states('input_number.temp_consigne_active') }}°C
-                  {% endif %}
-              - type: custom:mushroom-template-card
-                entity: input_number.temp_consigne_active
-                primary: >
-                  {% if is_state('input_boolean.mode_vacances', 'on') %}🛫 MODE
-                  VACANCES (Absence) {% elif
-                  is_state('input_boolean.chauffage_manuel', 'on') %}✋ MODE
-                  MANUEL {% elif is_state('input_boolean.boost_temperature',
-                  'on') %}🔥 MODE BOOST {% elif
-                  is_state('input_boolean.mode_planning_teletravail', 'on') %}💼
-                  PLANNING TÉLÉTRAVAIL {% elif
-                  is_state('input_boolean.mode_planning_vacances_maison', 'on')
-                  %}🏖️ VACANCES MAISON {% elif
-                  is_state('input_boolean.mode_planning_weekend_prolonge', 'on')
-                  %}🎉 WEEKEND PROLONGÉ {% else %}📅 PLANNING NORMAL{% endif %}
-                secondary: >
-                  {% if is_state('input_boolean.mode_vacances', 'on') %}
-                    Hors-gel {{ states('input_number.temp_vacances') }}°C • Fin {{ as_timestamp(states('input_datetime.vacances_fin')) | timestamp_custom('%d/%m à %H:%M') }}
-                  {% elif is_state('input_boolean.chauffage_manuel', 'on') %}
-                    Consigne {{ states('input_number.temp_consigne_manuelle') }}°C • Jusqu'à désactivation
-                  {% elif is_state('input_boolean.boost_temperature', 'on') %}
-                    +{{ states('input_number.boost_temperature_supplementaire') }}°C → {{ states('input_number.temp_consigne_active') }}°C • Fin {{ as_timestamp(states('input_datetime.boost_fin')) | timestamp_custom('%H:%M') }}
-                  {% elif is_state('input_boolean.mode_planning_teletravail',
-                  'on') %}
-                    Fin {{ as_timestamp(states('input_datetime.teletravail_fin')) | timestamp_custom('%d/%m/%Y') }}
-                  {% elif
-                  is_state('input_boolean.mode_planning_vacances_maison', 'on')
-                  %}
-                    Fin {{ as_timestamp(states('input_datetime.vacances_maison_fin')) | timestamp_custom('%d/%m/%Y') }}
-                  {% elif
-                  is_state('input_boolean.mode_planning_weekend_prolonge', 'on')
-                  %}
-                    Fin {{ as_timestamp(states('input_datetime.weekend_prolonge_fin')) | timestamp_custom('%d/%m/%Y') }}
-                  {% else %}
-                    {% if is_state('schedule.chauffage_semaine_matin', 'on') %}🌅 Période Confort Matin
-                    {% elif is_state('schedule.chauffage_semaine_soir', 'on') %}🌆 Période Confort Soir
-                    {% elif is_state('schedule.chauffage_weekend', 'on') %}🎈 Période Confort Weekend
-                    {% else %}💚 Mode Éco{% endif %}
-                  {% endif %}
-                icon: >
-                  {% if is_state('input_boolean.mode_vacances', 'on')
-                  %}mdi:airplane-takeoff {% elif
-                  is_state('input_boolean.chauffage_manuel', 'on')
-                  %}mdi:hand-back-right {% elif
-                  is_state('input_boolean.boost_temperature', 'on')
-                  %}mdi:fire-alert {% elif
-                  is_state('input_boolean.mode_planning_teletravail', 'on')
-                  %}mdi:laptop {% elif
-                  is_state('input_boolean.mode_planning_vacances_maison', 'on')
-                  %}mdi:home-heart {% elif
-                  is_state('input_boolean.mode_planning_weekend_prolonge', 'on')
-                  %}mdi:party-popper {% else %}mdi:calendar-check{% endif %}
-                icon_color: >
-                  {% if is_state('input_boolean.mode_vacances', 'on') %}blue {%
-                  elif is_state('input_boolean.chauffage_manuel', 'on') %}orange
-                  {% elif is_state('input_boolean.boost_temperature', 'on')
-                  %}red {% elif
-                  is_state('input_boolean.mode_planning_teletravail', 'on')
-                  %}teal {% elif
-                  is_state('input_boolean.mode_planning_vacances_maison', 'on')
-                  %}pink {% elif
-                  is_state('input_boolean.mode_planning_weekend_prolonge', 'on')
-                  %}purple {% else %}green{% endif %}
-                card_mod:
-                  style: |
-                    ha-card {
-                      {% if is_state('input_boolean.mode_vacances', 'on') %}
-                        background: rgba(33, 150, 243, 0.1); border-left: 4px solid #2196F3;
-                      {% elif is_state('input_boolean.chauffage_manuel', 'on') %}
-                        background: rgba(255, 152, 0, 0.1); border-left: 4px solid #FF9800;
-                      {% elif is_state('input_boolean.boost_temperature', 'on') %}
-                        background: rgba(244, 67, 54, 0.1); border-left: 4px solid #F44336;
-                      {% elif is_state('input_boolean.mode_planning_teletravail', 'on') %}
-                        background: rgba(0, 150, 136, 0.1); border-left: 4px solid #009688;
-                      {% elif is_state('input_boolean.mode_planning_vacances_maison', 'on') %}
-                        background: rgba(233, 30, 99, 0.1); border-left: 4px solid #E91E63;
-                      {% elif is_state('input_boolean.mode_planning_weekend_prolonge', 'on') %}
-                        background: rgba(156, 39, 176, 0.1); border-left: 4px solid #9C27B0;
-                      {% else %}
-                        background: rgba(76, 175, 80, 0.1); border-left: 4px solid #4CAF50;
-                      {% endif %}
-                      transition: all 0.3s ease;
-                    }
-              - type: grid
-                columns: 3
-                square: false
-                cards:
-                  - type: tile
-                    entity: input_boolean.mode_planning_normal
-                    name: Normal
-                    icon: mdi:calendar-check
-                    color: green
-                    tap_action:
-                      action: call-service
-                      service: script.planning_mode_normal
-                    card_mod:
-                      style: >
-                        ha-card { transition: all 0.3s ease; }
-
-                        ha-card:hover { transform: translateY(-2px); box-shadow:
-                        0 4px 8px rgba(0,0,0,0.2); }
-                  - type: tile
-                    entity: input_boolean.mode_planning_teletravail
-                    name: Télétravail
-                    icon: mdi:laptop
-                    color: teal
-                    tap_action:
-                      action: toggle
-                    card_mod:
-                      style: >
-                        ha-card { transition: all 0.3s ease; }
-
-                        ha-card:hover { transform: translateY(-2px); box-shadow:
-                        0 4px 8px rgba(0,0,0,0.2); }
-                  - type: tile
-                    entity: input_boolean.mode_planning_vacances_maison
-                    name: Vac. Maison
-                    icon: mdi:home-heart
-                    color: pink
-                    tap_action:
-                      action: toggle
-                    card_mod:
-                      style: >
-                        ha-card { transition: all 0.3s ease; }
-
-                        ha-card:hover { transform: translateY(-2px); box-shadow:
-                        0 4px 8px rgba(0,0,0,0.2); }
-                  - type: tile
-                    entity: input_boolean.mode_planning_weekend_prolonge
-                    name: Weekend+
-                    icon: mdi:calendar-weekend
-                    color: purple
-                    tap_action:
-                      action: toggle
-                    card_mod:
-                      style: >
-                        ha-card { transition: all 0.3s ease; }
-
-                        ha-card:hover { transform: translateY(-2px); box-shadow:
-                        0 4px 8px rgba(0,0,0,0.2); }
-                  - type: tile
-                    entity: input_boolean.mode_vacances
-                    name: Vacances
-                    icon: mdi:airplane-takeoff
-                    color: blue
-                    tap_action:
-                      action: toggle
-                    card_mod:
-                      style: >
-                        ha-card { transition: all 0.3s ease; }
-
-                        ha-card:hover { transform: translateY(-2px); box-shadow:
-                        0 4px 8px rgba(0,0,0,0.2); }
-                  - type: tile
-                    entity: script.reinitialiser_tous_plannings
-                    name: Réinitialiser
-                    icon: mdi:restart-alert
-                    color: red
-                    tap_action:
-                      action: call-service
-                      service: script.reinitialiser_tous_plannings
-                      data: {}
-                      confirmation:
-                        text: >-
-                          Voulez-vous vraiment réinitialiser tous les plannings
-                          ?
-                    card_mod:
-                      style: |
-                        ha-card {
-                          --tile-color: #f44336 !important;
-                          background: rgba(244, 67, 54, 0.2) !important;
-                        }
-              - type: markdown
-                content: >
-                  ---
-
-                  Priorisation des Planning 📈
-
-                  1. 🛫Vacances → 2. ✋Manuel → 3. 🔥Boost → 4. 💼Télétravail →
-                  5. 🏖️Vac. Maison → 6. 🎉Weekend+ → 7. 📅Planning Normal → 8.
-                  💚Éco
-                card_mod:
-                  style: |
-                    ha-card {
-                      background: rgba(255, 255, 255, 0.03);
-                      border: 1px solid rgba(255, 255, 255, 0.1);
-                      border-radius: 12px;
-                    }
-          - type: vertical-stack
-            cards:
-              - type: custom:mushroom-title-card
-                title: 📋 Détails du Planning
-              - type: markdown
-                content: >
-                  {% if is_state('input_boolean.mode_vacances', 'on') %}
-
-                  #### 🌡️ Températures - **Température unique** : {{
-                  states('input_number.temp_vacances') }}°C - **Mode** :
-                  Hors-gel / Absence prolongée
-
-                  #### 📅 Période - **Début** : {{
-                  as_timestamp(states('input_datetime.vacances_debut')) |
-                  timestamp_custom('%d/%m/%Y à %H:%M') }} - **Fin** : {{
-                  as_timestamp(states('input_datetime.vacances_fin')) |
-                  timestamp_custom('%d/%m/%Y à %H:%M') }}
-
-                  --- ⚠️ **Priorité absolue** : Tous les autres modes sont
-                  désactivés
-
-                  {% elif is_state('input_boolean.chauffage_manuel', 'on') %}
-
-                  #### 🌡️ Température - **Consigne manuelle** : {{
-                  states('input_number.temp_consigne_manuelle') }}°C -
-                  **Contrôle** : Total utilisateur
-
-                  #### ⏱️ Durée - **Actif** : Jusqu'à désactivation manuelle -
-                  **Retour auto** : Aux changements de plage horaire du planning
-                  normal
-
-                  {% elif is_state('input_boolean.boost_temperature', 'on') %}
-
-                  #### 🌡️ Températures - **Base** : {{
-                  states('input_number.temp_confort') if
-                  is_state('schedule.chauffage_semaine_matin', 'on') or
-                  is_state('schedule.chauffage_semaine_soir', 'on') or
-                  is_state('schedule.chauffage_weekend', 'on') else
-                  states('input_number.temp_eco') }}°C - **Boost** : +{{
-                  states('input_number.boost_temperature_supplementaire') }}°C -
-                  **Total** : {{ states('input_number.temp_consigne_active')
-                  }}°C
-
-                  #### ⏱️ Durée - **Début** : {{
-                  (as_timestamp(states('input_datetime.boost_fin')) -
-                  (states('input_number.boost_duree')|float * 3600)) |
-                  timestamp_custom('%H:%M') }} - **Fin** : {{
-                  as_timestamp(states('input_datetime.boost_fin')) |
-                  timestamp_custom('%H:%M') }} - **Restant** : {{
-                  ((as_timestamp(states('input_datetime.boost_fin')) -
-                  now().timestamp()) / 60) | round(0) }} min
-
-                  {% elif is_state('input_boolean.mode_planning_teletravail',
-                  'on') %}
-
-                  #### 🌡️ Températures - **Confort** : {{
-                  states('input_number.temp_confort') }}°C - **Éco** : {{
-                  states('input_number.temp_eco') }}°C - **Actuelle** : {{
-                  states('input_number.temp_consigne_active') }}°C
-
-                  #### 📅 Horaires Semaine * **📅 Lundi** : {{
-                  states('input_datetime.planning_teletravail_lundi_debut')[:-3]
-                  }} → {{
-                  states('input_datetime.planning_teletravail_lundi_fin')[:-3]
-                  }} (Confort) * **📅 Mardi** : {{
-                  states('input_datetime.planning_teletravail_mardi_debut')[:-3]
-                  }} → {{
-                  states('input_datetime.planning_teletravail_mardi_fin')[:-3]
-                  }} (Confort) * **📅 Mercredi** : {{
-                  states('input_datetime.planning_teletravail_mercredi_debut')[:-3]
-                  }} → {{
-                  states('input_datetime.planning_teletravail_mercredi_fin')[:-3]
-                  }} (Confort) * **📅 Jeudi** : {{
-                  states('input_datetime.planning_teletravail_jeudi_debut')[:-3]
-                  }} → {{
-                  states('input_datetime.planning_teletravail_jeudi_fin')[:-3]
-                  }} (Confort) * **📅 Vendredi** : {{
-                  states('input_datetime.planning_teletravail_vendredi_debut')[:-3]
-                  }} → {{
-                  states('input_datetime.planning_teletravail_vendredi_fin')[:-3]
-                  }} (Confort)
-
-                  #### 📅 Horaires Weekend * **📅 Samedi** : {{
-                  states('input_datetime.planning_teletravail_samedi_debut')[:-3]
-                  }} → {{
-                  states('input_datetime.planning_teletravail_samedi_fin')[:-3]
-                  }} (Confort) * **📅 Dimanche** : {{
-                  states('input_datetime.planning_teletravail_dimanche_debut')[:-3]
-                  }} → {{
-                  states('input_datetime.planning_teletravail_dimanche_fin')[:-3]
-                  }} (Confort) * **🌙 Hors périodes confort** : Éco
-
-                  #### 📆 Période - **Début** : {{
-                  as_timestamp(states('input_datetime.teletravail_debut')) |
-                  timestamp_custom('%d/%m/%Y') }} - **Fin** : {{
-                  as_timestamp(states('input_datetime.teletravail_fin')) |
-                  timestamp_custom('%d/%m/%Y') }}
-
-                  {% elif
-                  is_state('input_boolean.mode_planning_vacances_maison', 'on')
-                  %}
-
-                  #### 🌡️ Températures - **Confort** : {{
-                  states('input_number.temp_confort') }}°C - **Éco** : {{
-                  states('input_number.temp_eco') }}°C - **Actuelle** : {{
-                  states('input_number.temp_consigne_active') }}°C
-
-                  #### 📅 Horaires (7j/7) - **Tous les jours** : {{
-                  states('input_datetime.planning_vacances_maison_debut') }} →
-                  {{ states('input_datetime.planning_vacances_maison_fin') }}
-                  (Confort) - **Nuit** : Éco
-
-                  #### 📆 Période - **Début** : {{
-                  as_timestamp(states('input_datetime.vacances_maison_debut')) |
-                  timestamp_custom('%d/%m/%Y') }} - **Fin** : {{
-                  as_timestamp(states('input_datetime.vacances_maison_fin')) |
-                  timestamp_custom('%d/%m/%Y') }}
-
-                  {% elif
-                  is_state('input_boolean.mode_planning_weekend_prolonge', 'on')
-                  %}
-
-                  #### 🌡️ Températures - **Confort** : {{
-                  states('input_number.temp_confort') }}°C - **Éco** : {{
-                  states('input_number.temp_eco') }}°C - **Actuelle** : {{
-                  states('input_number.temp_consigne_active') }}°C
-
-                  #### 📅 Horaires (7j/7) - **Tous les jours** : {{
-                  states('input_datetime.planning_weekend_prolonge_debut') }} →
-                  {{ states('input_datetime.planning_weekend_prolonge_fin') }}
-                  (Confort) - **Nuit** : {{
-                  states('input_datetime.planning_weekend_prolonge_fin') }} → {{
-                  states('input_datetime.planning_weekend_prolonge_debut') }}
-                  (Éco)
-
-                  #### 📆 Période - **Début** : {{
-                  as_timestamp(states('input_datetime.weekend_prolonge_debut'))
-                  | timestamp_custom('%d/%m/%Y') }} - **Fin** : {{
-                  as_timestamp(states('input_datetime.weekend_prolonge_fin')) |
-                  timestamp_custom('%d/%m/%Y') }}
-
-                  {% else %}
-
-                  #### 🌡️ Températures - **Confort** : {{
-                  states('input_number.temp_confort') }}°C - **Éco** : {{
-                  states('input_number.temp_eco') }}°C - **Actuelle** : {{
-                  states('input_number.temp_consigne_active') }}°C
-
-                  #### 📅 Horaires Semaine (Lun-Ven) * **🌅 Matin** : {{
-                  states('input_datetime.planning_normal_lun_ven_matin_debut')[:-3]
-                  }} → {{
-                  states('input_datetime.planning_normal_lun_ven_matin_fin')[:-3]
-                  }} (Confort)
-
-                  * **📅 Lundi soir** : {{
-                  states('input_datetime.planning_normal_lundi_soir_debut')[:-3]
-                  }} → {{
-                  states('input_datetime.planning_normal_lundi_soir_fin')[:-3]
-                  }} (Confort) * **📅 Mardi soir** : {{
-                  states('input_datetime.planning_normal_mardi_soir_debut')[:-3]
-                  }} → {{
-                  states('input_datetime.planning_normal_mardi_soir_fin')[:-3]
-                  }} (Confort) * **📅 Mercredi soir** : {{
-                  states('input_datetime.planning_normal_mercredi_soir_debut')[:-3]
-                  }} → {{
-                  states('input_datetime.planning_normal_mercredi_soir_fin')[:-3]
-                  }} (Confort) * **📅 Jeudi soir** : {{
-                  states('input_datetime.planning_normal_jeudi_soir_debut')[:-3]
-                  }} → {{
-                  states('input_datetime.planning_normal_jeudi_soir_fin')[:-3]
-                  }} (Confort) * **📅 Vendredi soir** : {{
-                  states('input_datetime.planning_normal_vendredi_soir_debut')[:-3]
-                  }} → {{
-                  states('input_datetime.planning_normal_vendredi_soir_fin')[:-3]
-                  }} (Confort)
-
-                  #### 📅 Horaires Weekend * **📅 Samedi** : {{
-                  states('input_datetime.planning_normal_samedi_debut')[:-3] }}
-                  → {{ states('input_datetime.planning_normal_samedi_fin')[:-3]
-                  }} (Confort) * **📅 Dimanche** : {{
-                  states('input_datetime.planning_normal_dimanche_debut')[:-3]
-                  }} → {{
-                  states('input_datetime.planning_normal_dimanche_fin')[:-3] }}
-                  (Confort)
-
-                  * **🌙 Hors périodes confort** : Éco
-
-                  {% endif %}
-                card_mod:
-                  style: |
-                    ha-card {
-                      background: rgba(255, 255, 255, 0.03);
-                      border: 1px solid rgba(255, 255, 255, 0.1);
-                      border-radius: 12px;
-                    }
-              - type: conditional
-                conditions:
-                  - condition: state
-                    entity: input_boolean.mode_vacances
-                    state: 'off'
-                  - condition: state
-                    entity: input_boolean.chauffage_manuel
-                    state: 'off'
-                  - condition: state
-                    entity: input_boolean.boost_temperature
-                    state: 'off'
-                  - condition: state
-                    entity: input_boolean.mode_planning_teletravail
-                    state: 'off'
-                  - condition: state
-                    entity: input_boolean.mode_planning_vacances_maison
-                    state: 'off'
-                  - condition: state
-                    entity: input_boolean.mode_planning_weekend_prolonge
-                    state: 'off'
-                card:
-                  type: vertical-stack
-                  cards:
-                    - type: custom:mushroom-title-card
-                      title: 📅 État des Périodes Actives
-                    - type: custom:mushroom-template-card
-                      entity: input_boolean.periode_normal_matin
-                      primary: Période Confort Matin
-                      secondary: >
-                        {% if is_state('input_boolean.periode_normal_matin',
-                        'on') %}ACTIVÉ{% else %}Inactif{% endif %}
-                      icon: mdi:weather-sunset-up
-                      icon_color: >
-                        {% if is_state('input_boolean.periode_normal_matin',
-                        'on') %}amber{% else %}grey{% endif %}
-                      badge_icon: >
-                        {% if is_state('input_boolean.periode_normal_matin',
-                        'on') %}mdi:check-circle{% else %}mdi:close-circle{%
-                        endif %}
-                      badge_color: >
-                        {% if is_state('input_boolean.periode_normal_matin',
-                        'on') %}amber{% else %}grey{% endif %}
-                      card_mod:
-                        style: |
-                          ha-card {
-                            {% if is_state('input_boolean.periode_normal_matin', 'on') %}
-                              background: rgba(255, 193, 7, 0.1); border-left: 4px solid #FFC107;
-                            {% else %}
-                              background: rgba(255, 255, 255, 0.03); border-left: 4px solid #757575;
-                            {% endif %}
-                          }
-                    - type: custom:mushroom-template-card
-                      entity: input_boolean.periode_normal_soir
-                      primary: Période Confort Soir
-                      secondary: >
-                        {% if is_state('input_boolean.periode_normal_soir',
-                        'on') %}ACTIVÉ{% else %}Inactif{% endif %}
-                      icon: mdi:weather-sunset-down
-                      icon_color: >
-                        {% if is_state('input_boolean.periode_normal_soir',
-                        'on') %}deep-orange{% else %}grey{% endif %}
-                      badge_icon: >
-                        {% if is_state('input_boolean.periode_normal_soir',
-                        'on') %}mdi:check-circle{% else %}mdi:close-circle{%
-                        endif %}
-                      badge_color: >
-                        {% if is_state('input_boolean.periode_normal_soir',
-                        'on') %}deep-orange{% else %}grey{% endif %}
-                      card_mod:
-                        style: |
-                          ha-card {
-                            {% if is_state('input_boolean.periode_normal_soir', 'on') %}
-                              background: rgba(255, 87, 34, 0.1); border-left: 4px solid #FF5722;
-                            {% else %}
-                              background: rgba(255, 255, 255, 0.03); border-left: 4px solid #757575;
-                            {% endif %}
-                          }
-                    - type: custom:mushroom-template-card
-                      entity: input_boolean.periode_normal_weekend
-                      primary: Période Confort Weekend
-                      secondary: >
-                        {% if is_state('input_boolean.periode_normal_weekend',
-                        'on') %}ACTIVÉ{% else %}Inactif{% endif %}
-                      icon: mdi:calendar-weekend
-                      icon_color: >
-                        {% if is_state('input_boolean.periode_normal_weekend',
-                        'on') %}purple{% else %}grey{% endif %}
-                      badge_icon: >
-                        {% if is_state('input_boolean.periode_normal_weekend',
-                        'on') %}mdi:check-circle{% else %}mdi:close-circle{%
-                        endif %}
-                      badge_color: >
-                        {% if is_state('input_boolean.periode_normal_weekend',
-                        'on') %}purple{% else %}grey{% endif %}
-                      card_mod:
-                        style: |
-                          ha-card {
-                            {% if is_state('input_boolean.periode_normal_weekend', 'on') %}
-                              background: rgba(156, 39, 176, 0.1); border-left: 4px solid #9C27B0;
-                            {% else %}
-                              background: rgba(255, 255, 255, 0.03); border-left: 4px solid #757575;
-                            {% endif %}
-                          }
-  - title: Paramétrage Planning
-    path: parametrage-planning
-    icon: mdi:calendar-multiselect-outline
-    panel: true
-    cards:
-      - type: custom:layout-card
-        layout_type: custom:grid-layout
-        layout:
-          grid-template-columns: 1fr 1fr
-          grid-template-rows: 1fr 1fr
-          grid-gap: 12px
-          margin: 0
-          padding: 12px
-        cards:
-          - type: vertical-stack
-            cards:
-              - type: custom:mushroom-title-card
-                title: 💼 Planning Télétravail
-                subtitle: >
-                  {% if is_state('input_boolean.mode_planning_teletravail',
-                  'on') %}✅ Actif{% else %}⬚ Inactif{% endif %}
-              - type: custom:mushroom-entity-card
-                entity: input_boolean.mode_planning_teletravail
-                name: Activer le mode
-                icon: mdi:laptop
-                icon_color: >
-                  {% if is_state('input_boolean.mode_planning_teletravail',
-                  'on') %}teal{% else %}grey{% endif %}
-                badge_icon: >
-                  {% if is_state('input_boolean.mode_planning_teletravail',
-                  'on') %}mdi:check-bold{% else %}mdi:close-thick{% endif %}
-                badge_color: >
-                  {% if is_state('input_boolean.mode_planning_teletravail',
-                  'on') %}teal{% else %}grey{% endif %}
-                tap_action:
-                  action: toggle
-                  haptic: medium
-                card_mod:
-                  style: >
-                    ha-card {
-                      {% if is_state('input_boolean.mode_planning_teletravail', 'on') %}
-                        background: rgba(0, 150, 136, 0.1); border-left: 4px solid #009688;
-                      {% else %}
-                        background: rgba(255, 255, 255, 0.03); border-left: 4px solid #757575;
-                      {% endif %}
-                      transition: all 0.3s ease;
-                    }
-
-                    ha-card:hover { transform: translateY(-2px); box-shadow: 0
-                    4px 8px rgba(0,0,0,0.2); }
-              - type: grid
-                columns: 2
-                square: false
-                cards:
-                  - type: custom:mushroom-template-card
-                    entity: input_datetime.teletravail_debut
-                    primary: >-
-                      {{
-                      as_timestamp(states('input_datetime.teletravail_debut')) |
-                      timestamp_custom('%d/%m/%Y à %H:%M') }}
-                    secondary: Date de début
-                    icon: mdi:calendar-arrow-right
-                    icon_color: teal
-                    tap_action:
-                      action: more-info
-                  - type: custom:mushroom-template-card
-                    entity: input_datetime.teletravail_fin
-                    primary: >-
-                      {{ as_timestamp(states('input_datetime.teletravail_fin'))
-                      | timestamp_custom('%d/%m/%Y à %H:%M') }}
-                    secondary: Date de fin
-                    icon: mdi:calendar-arrow-left
-                    icon_color: teal
-                    tap_action:
-                      action: more-info
-              - type: custom:mushroom-entity-card
-                entity: input_boolean.auto_sync_teletravail
-                name: 🔄 Auto-sync (toutes les 15min)
-                icon: mdi:sync
-                icon_color: >
-                  {% if is_state('input_boolean.auto_sync_teletravail', 'on')
-                  %}green{% else %}grey{% endif %}
-                tap_action:
-                  action: toggle
-                  haptic: medium
-                card_mod:
-                  style: |
-                    ha-card {
-                      {% if is_state('input_boolean.auto_sync_teletravail', 'on') %}
-                        background: rgba(76, 175, 80, 0.1); border-left: 4px solid #4CAF50;
-                      {% else %}
-                        background: rgba(255, 255, 255, 0.03); border-left: 4px solid #757575;
-                      {% endif %}
-                    }
-              - type: custom:mushroom-template-card
-                entity: sensor.prochain_bloc_teletravail
-                primary: '{{ states(''sensor.prochain_bloc_teletravail'') }}'
-                secondary: 📅 Prochain bloc détecté
-                icon: mdi:calendar-search
-                icon_color: teal
-              - type: conditional
-                conditions:
-                  - entity: input_boolean.teletravail_modification_manuelle
-                    state: 'on'
-                card:
-                  type: custom:mushroom-template-card
-                  primary: ⚠️ Modifié manuellement
-                  secondary: Sync désactivée jusqu'à lundi
-                  icon: mdi:alert
-                  icon_color: amber
-                  card_mod:
-                    style: |
-                      ha-card {
-                        background: rgba(255, 193, 7, 0.15); border-left: 4px solid #FFC107;
-                      }
-              - type: custom:mushroom-template-card
-                entity: script.sync_planning_teletravail
-                primary: Forcer la synchronisation
-                secondary: ''
-                icon: mdi:sync
-                icon_color: teal
-                tap_action:
-                  action: call-service
-                  service: script.sync_planning_teletravail
-                card_mod:
-                  style: >
-                    ha-card {
-                      background: rgba(0, 150, 136, 0.08); border-left: 4px solid #009688;
-                      cursor: pointer; transition: all 0.3s ease;
-                    }
-
-                    ha-card:hover { background: rgba(0, 150, 136, 0.15);
-                    transform: translateY(-2px); box-shadow: 0 4px 8px
-                    rgba(0,0,0,0.2); }
-          - type: vertical-stack
-            cards:
-              - type: custom:mushroom-title-card
-                title: 🏖️ Planning Vacances Maison
-                subtitle: >
-                  {% if is_state('input_boolean.mode_planning_vacances_maison',
-                  'on') %}✅ Actif{% else %}⬚ Inactif{% endif %}
-              - type: custom:mushroom-entity-card
-                entity: input_boolean.mode_planning_vacances_maison
-                name: Activer le mode
-                icon: mdi:home-heart
-                icon_color: >
-                  {% if is_state('input_boolean.mode_planning_vacances_maison',
-                  'on') %}pink{% else %}grey{% endif %}
-                badge_icon: >
-                  {% if is_state('input_boolean.mode_planning_vacances_maison',
-                  'on') %}mdi:check-bold{% else %}mdi:close-thick{% endif %}
-                badge_color: >
-                  {% if is_state('input_boolean.mode_planning_vacances_maison',
-                  'on') %}pink{% else %}grey{% endif %}
-                tap_action:
-                  action: toggle
-                  haptic: medium
-                card_mod:
-                  style: >
-                    ha-card {
-                      {% if is_state('input_boolean.mode_planning_vacances_maison', 'on') %}
-                        background: rgba(233, 30, 99, 0.1); border-left: 4px solid #E91E63;
-                      {% else %}
-                        background: rgba(255, 255, 255, 0.03); border-left: 4px solid #757575;
-                      {% endif %}
-                      transition: all 0.3s ease;
-                    }
-
-                    ha-card:hover { transform: translateY(-2px); box-shadow: 0
-                    4px 8px rgba(0,0,0,0.2); }
-              - type: grid
-                columns: 2
-                square: false
-                cards:
-                  - type: custom:mushroom-template-card
-                    entity: input_datetime.vacances_maison_debut
-                    primary: >-
-                      {{
-                      as_timestamp(states('input_datetime.vacances_maison_debut'))
-                      | timestamp_custom('%d/%m/%Y à %H:%M') }}
-                    secondary: Date de début
-                    icon: mdi:calendar-arrow-right
-                    icon_color: pink
-                    tap_action:
-                      action: more-info
-                  - type: custom:mushroom-template-card
-                    entity: input_datetime.vacances_maison_fin
-                    primary: >-
-                      {{
-                      as_timestamp(states('input_datetime.vacances_maison_fin'))
-                      | timestamp_custom('%d/%m/%Y à %H:%M') }}
-                    secondary: Date de fin
-                    icon: mdi:calendar-arrow-left
-                    icon_color: pink
-                    tap_action:
-                      action: more-info
-              - type: custom:mushroom-entity-card
-                entity: input_boolean.auto_sync_vacances_scolaires
-                name: 📚 Sync Vacances Scolaires
-                icon: mdi:school
-                icon_color: >
-                  {% if is_state('input_boolean.auto_sync_vacances_scolaires',
-                  'on') %}green{% else %}grey{% endif %}
-                tap_action:
-                  action: toggle
-                  haptic: medium
-                card_mod:
-                  style: |
-                    ha-card {
-                      {% if is_state('input_boolean.auto_sync_vacances_scolaires', 'on') %}
-                        background: rgba(76, 175, 80, 0.1); border-left: 4px solid #4CAF50;
-                      {% else %}
-                        background: rgba(255, 255, 255, 0.03); border-left: 4px solid #757575;
-                      {% endif %}
-                    }
-              - type: custom:mushroom-template-card
-                entity: sensor.vacances_fr_next_zone_b
-                primary: '{{ states(''sensor.vacances_fr_next_zone_b'') }}'
-                secondary: Prochaines vacances scolaires
-                icon: mdi:calendar-star
-                icon_color: pink
-              - type: custom:mushroom-template-card
-                entity: script.sync_vacances_maison_depuis_calendrier
-                primary: Forcer la sync
-                secondary: ''
-                icon: mdi:sync
-                icon_color: pink
-                tap_action:
-                  action: call-service
-                  service: script.sync_vacances_maison_depuis_calendrier
-                card_mod:
-                  style: >
-                    ha-card {
-                      background: rgba(233, 30, 99, 0.08); border-left: 4px solid #E91E63;
-                      cursor: pointer; transition: all 0.3s ease;
-                    }
-
-                    ha-card:hover { background: rgba(233, 30, 99, 0.15);
-                    transform: translateY(-2px); box-shadow: 0 4px 8px
-                    rgba(0,0,0,0.2); }
-          - type: vertical-stack
-            cards:
-              - type: custom:mushroom-title-card
-                title: 🛫 Mode Vacances (Absence)
-                subtitle: ⚠️ Température minimale (priorité absolue)
-              - type: custom:mushroom-entity-card
-                entity: input_boolean.mode_vacances
-                name: Activer le mode
-                icon: mdi:airplane-takeoff
-                icon_color: >
-                  {% if is_state('input_boolean.mode_vacances', 'on') %}blue{%
-                  else %}grey{% endif %}
-                badge_icon: >
-                  {% if is_state('input_boolean.mode_vacances', 'on')
-                  %}mdi:check-bold{% else %}mdi:close-thick{% endif %}
-                badge_color: >
-                  {% if is_state('input_boolean.mode_vacances', 'on') %}blue{%
-                  else %}grey{% endif %}
-                tap_action:
-                  action: toggle
-                  haptic: medium
-                card_mod:
-                  style: >
-                    ha-card {
-                      {% if is_state('input_boolean.mode_vacances', 'on') %}
-                        background: rgba(33, 150, 243, 0.1); border-left: 4px solid #2196F3;
-                      {% else %}
-                        background: rgba(255, 255, 255, 0.03); border-left: 4px solid #757575;
-                      {% endif %}
-                      transition: all 0.3s ease;
-                    }
-
-                    ha-card:hover { transform: translateY(-2px); box-shadow: 0
-                    4px 8px rgba(0,0,0,0.2); }
-              - type: custom:mushroom-number-card
-                entity: input_number.temp_vacances
-                name: 🌡️ Température hors-gel
-                icon: mdi:thermometer-alert
-                icon_color: blue
-              - type: grid
-                columns: 2
-                square: false
-                cards:
-                  - type: custom:mushroom-template-card
-                    entity: input_datetime.vacances_debut
-                    primary: >-
-                      {{ as_timestamp(states('input_datetime.vacances_debut')) |
-                      timestamp_custom('%d/%m/%Y à %H:%M') }}
-                    secondary: Date de début
-                    icon: mdi:calendar-arrow-right
-                    icon_color: blue
-                    tap_action:
-                      action: more-info
-                  - type: custom:mushroom-template-card
-                    entity: input_datetime.vacances_fin
-                    primary: >-
-                      {{ as_timestamp(states('input_datetime.vacances_fin')) |
-                      timestamp_custom('%d/%m/%Y à %H:%M') }}
-                    secondary: Date de fin
-                    icon: mdi:calendar-arrow-left
-                    icon_color: blue
-                    tap_action:
-                      action: more-info
-          - type: vertical-stack
-            cards:
-              - type: custom:mushroom-title-card
-                title: 🎉 Planning Weekend Prolongé
-                subtitle: >
-                  {% if is_state('input_boolean.mode_planning_weekend_prolonge',
-                  'on') %}✅ Actif{% else %}⬚ Inactif{% endif %}
-              - type: custom:mushroom-entity-card
-                entity: input_boolean.mode_planning_weekend_prolonge
-                name: Activer le mode
-                icon: mdi:calendar-weekend
-                icon_color: >
-                  {% if is_state('input_boolean.mode_planning_weekend_prolonge',
-                  'on') %}purple{% else %}grey{% endif %}
-                badge_icon: >
-                  {% if is_state('input_boolean.mode_planning_weekend_prolonge',
-                  'on') %}mdi:check-bold{% else %}mdi:close-thick{% endif %}
-                badge_color: >
-                  {% if is_state('input_boolean.mode_planning_weekend_prolonge',
-                  'on') %}purple{% else %}grey{% endif %}
-                tap_action:
-                  action: toggle
-                  haptic: medium
-                card_mod:
-                  style: >
-                    ha-card {
-                      {% if is_state('input_boolean.mode_planning_weekend_prolonge', 'on') %}
-                        background: rgba(156, 39, 176, 0.1); border-left: 4px solid #9C27B0;
-                      {% else %}
-                        background: rgba(255, 255, 255, 0.03); border-left: 4px solid #757575;
-                      {% endif %}
-                      transition: all 0.3s ease;
-                    }
-
-                    ha-card:hover { transform: translateY(-2px); box-shadow: 0
-                    4px 8px rgba(0,0,0,0.2); }
-              - type: grid
-                columns: 2
-                square: false
-                cards:
-                  - type: custom:mushroom-template-card
-                    entity: input_datetime.weekend_prolonge_debut
-                    primary: >-
-                      {{
-                      as_timestamp(states('input_datetime.weekend_prolonge_debut'))
-                      | timestamp_custom('%d/%m/%Y à %H:%M') }}
-                    secondary: Date de début
-                    icon: mdi:calendar-arrow-right
-                    icon_color: purple
-                    tap_action:
-                      action: more-info
-                  - type: custom:mushroom-template-card
-                    entity: input_datetime.weekend_prolonge_fin
-                    primary: >-
-                      {{
-                      as_timestamp(states('input_datetime.weekend_prolonge_fin'))
-                      | timestamp_custom('%d/%m/%Y à %H:%M') }}
-                    secondary: Date de fin
-                    icon: mdi:calendar-arrow-left
-                    icon_color: purple
-                    tap_action:
-                      action: more-info
-  - title: Config Horaires
-    path: config-horaires
-    icon: mdi:clock-edit
-    panel: true
-    cards:
-      - type: vertical-stack
-        cards:
-          - type: custom:mushroom-title-card
-            title: ⏰ Configuration des Horaires
-            subtitle: >
-              {{ now().strftime('%A %d %B %Y') | capitalize }} • {{
-              now().strftime('%H:%M') }}
-          - type: custom:mushroom-select-card
-            entity: input_select.selecteur_planning_config
-            name: 🎯 Choisir le Planning à Modifier
-            icon: mdi:tune
-            icon_color: indigo
-            card_mod:
-              style: |
-                ha-card {
-                  background: rgba(63, 81, 181, 0.1);
-                  border-left: 4px solid #3F51B5;
-                }
-          - type: custom:mushroom-chips-card
-            alignment: center
-            chips:
-              - type: template
-                icon: >
-                  {% if is_state('input_boolean.mode_vacances', 'on')
-                  %}mdi:airplane {% elif
-                  is_state('input_boolean.chauffage_manuel', 'on')
-                  %}mdi:hand-back-right {% elif
-                  is_state('input_boolean.boost_temperature', 'on')
-                  %}mdi:fire-alert {% elif
-                  is_state('input_boolean.mode_planning_teletravail', 'on')
-                  %}mdi:laptop {% elif
-                  is_state('input_boolean.mode_planning_vacances_maison', 'on')
-                  %}mdi:home-heart {% elif
-                  is_state('input_boolean.mode_planning_weekend_prolonge', 'on')
-                  %}mdi:party-popper {% else %}mdi:calendar-check{% endif %}
-                content: >
-                  {% if is_state('input_boolean.mode_vacances', 'on') %}Vacances
-                  {% elif is_state('input_boolean.chauffage_manuel', 'on')
-                  %}Manuel {% elif is_state('input_boolean.boost_temperature',
-                  'on') %}Boost {% elif
-                  is_state('input_boolean.mode_planning_teletravail', 'on')
-                  %}Télétravail {% elif
-                  is_state('input_boolean.mode_planning_vacances_maison', 'on')
-                  %}Vac. Maison {% elif
-                  is_state('input_boolean.mode_planning_weekend_prolonge', 'on')
-                  %}Weekend+ {% else %}Normal{% endif %}
-                icon_color: green
-              - type: template
-                icon: >
-                  {% if is_state('schedule.chauffage_semaine_matin', 'on') or
-                  is_state('schedule.chauffage_semaine_soir', 'on') or
-                  is_state('schedule.chauffage_weekend', 'on') %}mdi:fire{% else
-                  %}mdi:leaf{% endif %}
-                content: >
-                  {% if is_state('schedule.chauffage_semaine_matin', 'on') or
-                  is_state('schedule.chauffage_semaine_soir', 'on') or
-                  is_state('schedule.chauffage_weekend', 'on') %}CONFORT {{
-                  states('input_number.temp_confort') }}°C{% else %}ÉCO {{
-                  states('input_number.temp_eco') }}°C{% endif %}
-                icon_color: >
-                  {% if is_state('schedule.chauffage_semaine_matin', 'on') or
-                  is_state('schedule.chauffage_semaine_soir', 'on') or
-                  is_state('schedule.chauffage_weekend', 'on') %}deep-orange{%
-                  else %}green{% endif %}
-          - type: conditional
-            conditions:
-              - entity: input_select.selecteur_planning_config
-                state: 📅 Planning Normal
-            card:
-              type: vertical-stack
-              cards:
-                - type: custom:mushroom-title-card
-                  title: 📅 Planning Normal Hebdomadaire
-                - type: custom:mushroom-title-card
-                  title: 🌅 Confort Matin (Lundi à Vendredi)
-                - type: grid
-                  columns: 2
-                  square: false
-                  cards:
-                    - type: custom:mushroom-template-card
-                      entity: input_datetime.planning_normal_lun_ven_matin_debut
-                      primary: >-
-                        {{
-                        states('input_datetime.planning_normal_lun_ven_matin_debut')[:-3]
-                        }}
-                      secondary: Début matin
-                      icon: mdi:clock-start
-                      icon_color: amber
-                      tap_action:
-                        action: more-info
-                    - type: custom:mushroom-template-card
-                      entity: input_datetime.planning_normal_lun_ven_matin_fin
-                      primary: >-
-                        {{
-                        states('input_datetime.planning_normal_lun_ven_matin_fin')[:-3]
-                        }}
-                      secondary: Fin matin
-                      icon: mdi:clock-end
-                      icon_color: amber
-                      tap_action:
-                        action: more-info
-                - type: custom:mushroom-title-card
-                  title: 🌆 Soirs de Semaine
-                - type: entities
-                  entities:
-                    - entity: input_datetime.planning_normal_lundi_soir_debut
-                      name: Lundi début
-                    - entity: input_datetime.planning_normal_lundi_soir_fin
-                      name: Lundi fin
-                    - type: divider
-                    - entity: input_datetime.planning_normal_mardi_soir_debut
-                      name: Mardi début
-                    - entity: input_datetime.planning_normal_mardi_soir_fin
-                      name: Mardi fin
-                    - type: divider
-                    - entity: input_datetime.planning_normal_mercredi_soir_debut
-                      name: Mercredi début
-                    - entity: input_datetime.planning_normal_mercredi_soir_fin
-                      name: Mercredi fin
-                    - type: divider
-                    - entity: input_datetime.planning_normal_jeudi_soir_debut
-                      name: Jeudi début
-                    - entity: input_datetime.planning_normal_jeudi_soir_fin
-                      name: Jeudi fin
-                    - type: divider
-                    - entity: input_datetime.planning_normal_vendredi_soir_debut
-                      name: Vendredi début
-                    - entity: input_datetime.planning_normal_vendredi_soir_fin
-                      name: Vendredi fin
-                  card_mod:
-                    style: >
-                      ha-card { background: rgba(255, 255, 255, 0.03); border:
-                      1px solid rgba(255, 255, 255, 0.1); }
-                - type: custom:mushroom-title-card
-                  title: 🎉 Weekend
-                - type: entities
-                  entities:
-                    - entity: input_datetime.planning_normal_samedi_debut
-                      name: Samedi début
-                    - entity: input_datetime.planning_normal_samedi_fin
-                      name: Samedi fin
-                    - type: divider
-                    - entity: input_datetime.planning_normal_dimanche_debut
-                      name: Dimanche début
-                    - entity: input_datetime.planning_normal_dimanche_fin
-                      name: Dimanche fin
-                  card_mod:
-                    style: >
-                      ha-card { background: rgba(255, 255, 255, 0.03); border:
-                      1px solid rgba(255, 255, 255, 0.1); }
-                - type: custom:mushroom-chips-card
-                  alignment: center
-                  chips:
-                    - type: template
-                      icon: mdi:leaf
-                      content: >-
-                        Hors créneaux → Éco {{ states('input_number.temp_eco')
-                        }}°C
-                      icon_color: green
-          - type: conditional
-            conditions:
-              - entity: input_select.selecteur_planning_config
-                state: 💼 Planning Télétravail
-            card:
-              type: vertical-stack
-              cards:
-                - type: custom:mushroom-title-card
-                  title: 💼 Planning Télétravail (7j/7)
-                - type: entities
-                  title: Lundi à Vendredi
-                  entities:
-                    - entity: input_datetime.planning_teletravail_lundi_debut
-                      name: Lundi début
-                    - entity: input_datetime.planning_teletravail_lundi_fin
-                      name: Lundi fin
-                    - type: divider
-                    - entity: input_datetime.planning_teletravail_mardi_debut
-                      name: Mardi début
-                    - entity: input_datetime.planning_teletravail_mardi_fin
-                      name: Mardi fin
-                    - type: divider
-                    - entity: input_datetime.planning_teletravail_mercredi_debut
-                      name: Mercredi début
-                    - entity: input_datetime.planning_teletravail_mercredi_fin
-                      name: Mercredi fin
-                    - type: divider
-                    - entity: input_datetime.planning_teletravail_jeudi_debut
-                      name: Jeudi début
-                    - entity: input_datetime.planning_teletravail_jeudi_fin
-                      name: Jeudi fin
-                    - type: divider
-                    - entity: input_datetime.planning_teletravail_vendredi_debut
-                      name: Vendredi début
-                    - entity: input_datetime.planning_teletravail_vendredi_fin
-                      name: Vendredi fin
-                  card_mod:
-                    style: >
-                      ha-card { background: rgba(255, 255, 255, 0.03); border:
-                      1px solid rgba(255, 255, 255, 0.1); }
-                - type: entities
-                  title: Weekend
-                  entities:
-                    - entity: input_datetime.planning_teletravail_samedi_debut
-                      name: Samedi début
-                    - entity: input_datetime.planning_teletravail_samedi_fin
-                      name: Samedi fin
-                    - type: divider
-                    - entity: input_datetime.planning_teletravail_dimanche_debut
-                      name: Dimanche début
-                    - entity: input_datetime.planning_teletravail_dimanche_fin
-                      name: Dimanche fin
-                  card_mod:
-                    style: >
-                      ha-card { background: rgba(255, 255, 255, 0.03); border:
-                      1px solid rgba(255, 255, 255, 0.1); }
-                - type: custom:mushroom-chips-card
-                  alignment: center
-                  chips:
-                    - type: template
-                      icon: mdi:leaf
-                      content: >-
-                        Hors créneaux → Éco {{ states('input_number.temp_eco')
-                        }}°C
-                      icon_color: green
-          - type: conditional
-            conditions:
-              - entity: input_select.selecteur_planning_config
-                state: 🏖️ Planning Vacances Maison
-            card:
-              type: vertical-stack
-              cards:
-                - type: custom:mushroom-title-card
-                  title: 🏖️ Planning Vacances Maison
-                  subtitle: Même horaire tous les jours (7j/7)
-                - type: grid
-                  columns: 2
-                  square: false
-                  cards:
-                    - type: custom:mushroom-template-card
-                      entity: input_datetime.planning_vacances_maison_debut
-                      primary: >-
-                        {{
-                        states('input_datetime.planning_vacances_maison_debut')
-                        }}
-                      secondary: Début Confort
-                      icon: mdi:clock-start
-                      icon_color: pink
-                      tap_action:
-                        action: more-info
-                    - type: custom:mushroom-template-card
-                      entity: input_datetime.planning_vacances_maison_fin
-                      primary: >-
-                        {{ states('input_datetime.planning_vacances_maison_fin')
-                        }}
-                      secondary: Fin Confort
-                      icon: mdi:clock-end
-                      icon_color: pink
-                      tap_action:
-                        action: more-info
-                - type: custom:mushroom-chips-card
-                  alignment: center
-                  chips:
-                    - type: template
-                      icon: mdi:leaf
-                      content: >-
-                        Hors créneaux → Éco {{ states('input_number.temp_eco')
-                        }}°C
-                      icon_color: green
-          - type: conditional
-            conditions:
-              - entity: input_select.selecteur_planning_config
-                state: 🎉 Planning Weekend Prolongé
-            card:
-              type: vertical-stack
-              cards:
-                - type: custom:mushroom-title-card
-                  title: 🎉 Planning Weekend Prolongé
-                  subtitle: Même horaire tous les jours (7j/7)
-                - type: grid
-                  columns: 2
-                  square: false
-                  cards:
-                    - type: custom:mushroom-template-card
-                      entity: input_datetime.planning_weekend_prolonge_debut
-                      primary: >-
-                        {{
-                        states('input_datetime.planning_weekend_prolonge_debut')
-                        }}
-                      secondary: Début Confort
-                      icon: mdi:clock-start
-                      icon_color: purple
-                      tap_action:
-                        action: more-info
-                    - type: custom:mushroom-template-card
-                      entity: input_datetime.planning_weekend_prolonge_fin
-                      primary: >-
-                        {{
-                        states('input_datetime.planning_weekend_prolonge_fin')
-                        }}
-                      secondary: Fin Confort
-                      icon: mdi:clock-end
-                      icon_color: purple
-                      tap_action:
-                        action: more-info
-                - type: custom:mushroom-chips-card
-                  alignment: center
-                  chips:
-                    - type: template
-                      icon: mdi:leaf
-                      content: >-
-                        Hors créneaux → Éco {{ states('input_number.temp_eco')
-                        }}°C
-                      icon_color: green
   - title: Historique
     path: historique
     icon: mdi:chart-line
@@ -1575,10 +368,10 @@ views:
                       box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
                     }
           - type: history-graph
-            title: 🔥 État Chauffage (24h)
+            title: 🔥 État Poêle (24h)
             entities:
               - entity: input_boolean.chauffage_actif
-                name: Chauffage
+                name: Poêle
             hours_to_show: 24
   - title: Mode Saisonnier & Consignes
     path: mode-saisonnier
@@ -1722,3 +515,461 @@ views:
 
                     ha-card:hover { background: rgba(76, 175, 80, 0.15);
                     transform: scale(1.02); }
+  - title: Climatisation
+    path: climatisation
+    icon: mdi:air-conditioner
+    panel: true
+    cards:
+      - type: custom:layout-card
+        layout_type: custom:grid-layout
+        layout:
+          grid-template-columns: 1fr 1fr
+          grid-template-rows: auto auto auto
+          grid-gap: 12px
+          margin: 0
+          padding: 12px
+        cards:
+          - type: vertical-stack
+            view_layout:
+              grid-column: 1 / -1
+            cards:
+              - type: custom:mushroom-title-card
+                title: ❄️ Climatisation
+                subtitle: >
+                  {% if is_state('input_boolean.chauffage_desactive_ete', 'on')
+                  %}
+                    ☀️ Mode Été • Toutes les clims en COOL
+                  {% else %}
+                    ❄️ Mode Hiver • Toutes les clims en HEAT
+                  {% endif %}
+              - type: grid
+                columns: 3
+                square: false
+                cards:
+                  - type: custom:mushroom-template-card
+                    primary: Tout allumer
+                    icon: mdi:power
+                    icon_color: green
+                    layout: horizontal
+                    tap_action:
+                      action: call-service
+                      service: climate.turn_on
+                      target:
+                        entity_id:
+                          - climate.clim_salon
+                          - climate.clim_chambre_parents
+                          - climate.clim_chambre_theodore
+                          - climate.clim_chambre_antonin
+                          - climate.clim_chambre_maxence
+                    card_mod:
+                      style: |
+                        ha-card {
+                          background: rgba(76, 175, 80, 0.1);
+                          border-left: 4px solid #4CAF50;
+                          cursor: pointer;
+                        }
+                  - type: custom:mushroom-template-card
+                    primary: Tout éteindre
+                    icon: mdi:power-off
+                    icon_color: red
+                    layout: horizontal
+                    tap_action:
+                      action: call-service
+                      service: climate.turn_off
+                      target:
+                        entity_id:
+                          - climate.clim_salon
+                          - climate.clim_chambre_parents
+                          - climate.clim_chambre_theodore
+                          - climate.clim_chambre_antonin
+                          - climate.clim_chambre_maxence
+                      confirmation:
+                        text: Éteindre toutes les clims ?
+                    card_mod:
+                      style: |
+                        ha-card {
+                          background: rgba(244, 67, 54, 0.1);
+                          border-left: 4px solid #F44336;
+                          cursor: pointer;
+                        }
+                  - type: custom:mushroom-template-card
+                    primary: >
+                      {% if is_state('input_boolean.chauffage_desactive_ete',
+                      'on') %}
+                        ☀️ Mode Été
+                      {% else %}
+                        ❄️ Mode Hiver
+                      {% endif %}
+                    secondary: Changer dans Mode Saisonnier
+                    icon: >
+                      {% if is_state('input_boolean.chauffage_desactive_ete',
+                      'on') %}
+                        mdi:white-balance-sunny
+                      {% else %}
+                        mdi:snowflake
+                      {% endif %}
+                    icon_color: >
+                      {% if is_state('input_boolean.chauffage_desactive_ete',
+                      'on') %}
+                        amber
+                      {% else %}
+                        indigo
+                      {% endif %}
+                    layout: horizontal
+                    tap_action:
+                      action: navigate
+                      navigation_path: /chauffage-v2/mode-saisonnier
+                    card_mod:
+                      style: |
+                        ha-card {
+                          {% if is_state('input_boolean.chauffage_desactive_ete', 'on') %}
+                            background: rgba(255, 193, 7, 0.1); border-left: 4px solid #FFC107;
+                          {% else %}
+                            background: rgba(63, 81, 181, 0.1); border-left: 4px solid #3F51B5;
+                          {% endif %}
+                          cursor: pointer;
+                        }
+          - type: vertical-stack
+            view_layout:
+              grid-column: 1 / -1
+            cards:
+              - type: custom:mushroom-title-card
+                title: 🏠 RDC
+              - type: grid
+                columns: 2
+                square: false
+                cards:
+                  - type: custom:mushroom-template-card
+                    primary: Clim Salon
+                    secondary: >
+                      {# ← Remplacer climate.clim_salon par le vrai entity_id #}
+                      {% if is_state('climate.clim_salon', 'off') %}
+                        Éteinte
+                      {% else %}
+                        {{ state_attr('climate.clim_salon', 'current_temperature') }}°C
+                        → {{ state_attr('climate.clim_salon', 'temperature') }}°C
+                        • {{ state_attr('climate.clim_salon', 'hvac_action') }}
+                      {% endif %}
+                    icon: mdi:air-conditioner
+                    icon_color: >
+                      {% if is_state('climate.clim_salon', 'off') %}grey {% elif
+                      state_attr('climate.clim_salon', 'hvac_mode') == 'cool'
+                      %}light-blue {% else %}deep-orange{% endif %}
+                    badge_icon: >
+                      {% if is_state('climate.clim_salon', 'off')
+                      %}mdi:power-off {% elif state_attr('climate.clim_salon',
+                      'hvac_mode') == 'cool' %}mdi:snowflake {% else
+                      %}mdi:fire{% endif %}
+                    badge_color: >
+                      {% if is_state('climate.clim_salon', 'off') %}grey {% elif
+                      state_attr('climate.clim_salon', 'hvac_mode') == 'cool'
+                      %}light-blue {% else %}deep-orange{% endif %}
+                    tap_action:
+                      action: more-info
+                      entity: climate.clim_salon
+                    card_mod:
+                      style: |
+                        ha-card {
+                          {% if is_state('climate.clim_salon', 'off') %}
+                            background: rgba(255,255,255,0.03); border-left: 4px solid #757575;
+                          {% elif state_attr('climate.clim_salon', 'hvac_mode') == 'cool' %}
+                            background: rgba(3, 169, 244, 0.1); border-left: 4px solid #03A9F4;
+                          {% else %}
+                            background: rgba(255, 87, 34, 0.1); border-left: 4px solid #FF5722;
+                          {% endif %}
+                          transition: all 0.3s ease;
+                        }
+                  - type: thermostat
+                    entity: climate.clim_salon
+                    features:
+                      - type: climate-hvac-modes
+                        hvac_modes:
+                          - 'off'
+                          - heat
+                          - cool
+                          - fan_only
+                          - dry
+                      - type: climate-fan-modes
+                      - type: climate-swing-modes
+          - type: vertical-stack
+            view_layout:
+              grid-column: 1 / -1
+            cards:
+              - type: custom:mushroom-title-card
+                title: 🏠 Étage
+              - type: grid
+                columns: 2
+                square: false
+                cards:
+                  - type: custom:mushroom-template-card
+                    primary: Étage — Tout allumer
+                    icon: mdi:power
+                    icon_color: green
+                    layout: horizontal
+                    tap_action:
+                      action: call-service
+                      service: climate.turn_on
+                      target:
+                        entity_id:
+                          - climate.clim_chambre_parents
+                          - climate.clim_chambre_theodore
+                          - climate.clim_chambre_antonin
+                          - climate.clim_chambre_maxence
+                    card_mod:
+                      style: |
+                        ha-card {
+                          background: rgba(76, 175, 80, 0.08);
+                          border-left: 4px solid #4CAF50;
+                          cursor: pointer;
+                        }
+                  - type: custom:mushroom-template-card
+                    primary: Étage — Tout éteindre
+                    icon: mdi:power-off
+                    icon_color: red
+                    layout: horizontal
+                    tap_action:
+                      action: call-service
+                      service: climate.turn_off
+                      target:
+                        entity_id:
+                          - climate.clim_chambre_parents
+                          - climate.clim_chambre_theodore
+                          - climate.clim_chambre_antonin
+                          - climate.clim_chambre_maxence
+                      confirmation:
+                        text: Éteindre toutes les clims de l'étage ?
+                    card_mod:
+                      style: |
+                        ha-card {
+                          background: rgba(244, 67, 54, 0.08);
+                          border-left: 4px solid #F44336;
+                          cursor: pointer;
+                        }
+          - type: vertical-stack
+            cards:
+              - type: custom:mushroom-title-card
+                title: 🛏️ Chambre Parents
+              - type: custom:mushroom-template-card
+                primary: Chambre Parents
+                secondary: |
+                  {% if is_state('climate.clim_chambre_parents', 'off') %}
+                    Éteinte
+                  {% else %}
+                    {{ state_attr('climate.clim_chambre_parents', 'current_temperature') }}°C
+                    → {{ state_attr('climate.clim_chambre_parents', 'temperature') }}°C
+                    • {{ state_attr('climate.clim_chambre_parents', 'fan_mode') }}
+                  {% endif %}
+                icon: mdi:ceiling-fan
+                icon_color: >
+                  {% if is_state('climate.clim_chambre_parents', 'off') %}grey
+                  {% elif state_attr('climate.clim_chambre_parents',
+                  'hvac_mode') == 'cool' %}light-blue {% else %}deep-orange{%
+                  endif %}
+                badge_icon: >
+                  {% if is_state('climate.clim_chambre_parents', 'off')
+                  %}mdi:power-off {% elif
+                  state_attr('climate.clim_chambre_parents', 'hvac_mode') ==
+                  'cool' %}mdi:snowflake {% else %}mdi:fire{% endif %}
+                badge_color: >
+                  {% if is_state('climate.clim_chambre_parents', 'off') %}grey
+                  {% elif state_attr('climate.clim_chambre_parents',
+                  'hvac_mode') == 'cool' %}light-blue {% else %}deep-orange{%
+                  endif %}
+                tap_action:
+                  action: more-info
+                  entity: climate.clim_chambre_parents
+                card_mod:
+                  style: |
+                    ha-card {
+                      {% if is_state('climate.clim_chambre_parents', 'off') %}
+                        background: rgba(255,255,255,0.03); border-left: 4px solid #757575;
+                      {% elif state_attr('climate.clim_chambre_parents', 'hvac_mode') == 'cool' %}
+                        background: rgba(3, 169, 244, 0.1); border-left: 4px solid #03A9F4;
+                      {% else %}
+                        background: rgba(255, 87, 34, 0.1); border-left: 4px solid #FF5722;
+                      {% endif %}
+                      transition: all 0.3s ease;
+                    }
+              - type: thermostat
+                entity: climate.clim_chambre_parents
+                features:
+                  - type: climate-hvac-modes
+                    hvac_modes:
+                      - 'off'
+                      - heat
+                      - cool
+                      - fan_only
+                      - dry
+                  - type: climate-fan-modes
+                  - type: climate-swing-modes
+          - type: vertical-stack
+            cards:
+              - type: custom:mushroom-title-card
+                title: 🛏️ Chambre Théodore
+              - type: custom:mushroom-template-card
+                primary: Chambre Théodore
+                secondary: |
+                  {% if is_state('climate.clim_chambre_theodore', 'off') %}
+                    Éteinte
+                  {% else %}
+                    {{ state_attr('climate.clim_chambre_theodore', 'current_temperature') }}°C
+                    → {{ state_attr('climate.clim_chambre_theodore', 'temperature') }}°C
+                    • {{ state_attr('climate.clim_chambre_theodore', 'fan_mode') }}
+                  {% endif %}
+                icon: mdi:ceiling-fan
+                icon_color: >
+                  {% if is_state('climate.clim_chambre_theodore', 'off') %}grey
+                  {% elif state_attr('climate.clim_chambre_theodore',
+                  'hvac_mode') == 'cool' %}light-blue {% else %}deep-orange{%
+                  endif %}
+                badge_icon: >
+                  {% if is_state('climate.clim_chambre_theodore', 'off')
+                  %}mdi:power-off {% elif
+                  state_attr('climate.clim_chambre_theodore', 'hvac_mode') ==
+                  'cool' %}mdi:snowflake {% else %}mdi:fire{% endif %}
+                badge_color: >
+                  {% if is_state('climate.clim_chambre_theodore', 'off') %}grey
+                  {% elif state_attr('climate.clim_chambre_theodore',
+                  'hvac_mode') == 'cool' %}light-blue {% else %}deep-orange{%
+                  endif %}
+                tap_action:
+                  action: more-info
+                  entity: climate.clim_chambre_theodore
+                card_mod:
+                  style: |
+                    ha-card {
+                      {% if is_state('climate.clim_chambre_theodore', 'off') %}
+                        background: rgba(255,255,255,0.03); border-left: 4px solid #757575;
+                      {% elif state_attr('climate.clim_chambre_theodore', 'hvac_mode') == 'cool' %}
+                        background: rgba(3, 169, 244, 0.1); border-left: 4px solid #03A9F4;
+                      {% else %}
+                        background: rgba(255, 87, 34, 0.1); border-left: 4px solid #FF5722;
+                      {% endif %}
+                      transition: all 0.3s ease;
+                    }
+              - type: thermostat
+                entity: climate.clim_chambre_theodore
+                features:
+                  - type: climate-hvac-modes
+                    hvac_modes:
+                      - 'off'
+                      - heat
+                      - cool
+                      - fan_only
+                      - dry
+                  - type: climate-fan-modes
+                  - type: climate-swing-modes
+          - type: vertical-stack
+            cards:
+              - type: custom:mushroom-title-card
+                title: 🛏️ Chambre Antonin
+              - type: custom:mushroom-template-card
+                primary: Chambre Antonin
+                secondary: |
+                  {% if is_state('climate.clim_chambre_antonin', 'off') %}
+                    Éteinte
+                  {% else %}
+                    {{ state_attr('climate.clim_chambre_antonin', 'current_temperature') }}°C
+                    → {{ state_attr('climate.clim_chambre_antonin', 'temperature') }}°C
+                    • {{ state_attr('climate.clim_chambre_antonin', 'fan_mode') }}
+                  {% endif %}
+                icon: mdi:ceiling-fan
+                icon_color: >
+                  {% if is_state('climate.clim_chambre_antonin', 'off') %}grey
+                  {% elif state_attr('climate.clim_chambre_antonin',
+                  'hvac_mode') == 'cool' %}light-blue {% else %}deep-orange{%
+                  endif %}
+                badge_icon: >
+                  {% if is_state('climate.clim_chambre_antonin', 'off')
+                  %}mdi:power-off {% elif
+                  state_attr('climate.clim_chambre_antonin', 'hvac_mode') ==
+                  'cool' %}mdi:snowflake {% else %}mdi:fire{% endif %}
+                badge_color: >
+                  {% if is_state('climate.clim_chambre_antonin', 'off') %}grey
+                  {% elif state_attr('climate.clim_chambre_antonin',
+                  'hvac_mode') == 'cool' %}light-blue {% else %}deep-orange{%
+                  endif %}
+                tap_action:
+                  action: more-info
+                  entity: climate.clim_chambre_antonin
+                card_mod:
+                  style: |
+                    ha-card {
+                      {% if is_state('climate.clim_chambre_antonin', 'off') %}
+                        background: rgba(255,255,255,0.03); border-left: 4px solid #757575;
+                      {% elif state_attr('climate.clim_chambre_antonin', 'hvac_mode') == 'cool' %}
+                        background: rgba(3, 169, 244, 0.1); border-left: 4px solid #03A9F4;
+                      {% else %}
+                        background: rgba(255, 87, 34, 0.1); border-left: 4px solid #FF5722;
+                      {% endif %}
+                      transition: all 0.3s ease;
+                    }
+              - type: thermostat
+                entity: climate.clim_chambre_antonin
+                features:
+                  - type: climate-hvac-modes
+                    hvac_modes:
+                      - 'off'
+                      - heat
+                      - cool
+                      - fan_only
+                      - dry
+                  - type: climate-fan-modes
+                  - type: climate-swing-modes
+          - type: vertical-stack
+            cards:
+              - type: custom:mushroom-title-card
+                title: 🛏️ Chambre Maxence
+              - type: custom:mushroom-template-card
+                primary: Chambre Maxence
+                secondary: |
+                  {% if is_state('climate.clim_chambre_maxence', 'off') %}
+                    Éteinte
+                  {% else %}
+                    {{ state_attr('climate.clim_chambre_maxence', 'current_temperature') }}°C
+                    → {{ state_attr('climate.clim_chambre_maxence', 'temperature') }}°C
+                    • {{ state_attr('climate.clim_chambre_maxence', 'fan_mode') }}
+                  {% endif %}
+                icon: mdi:ceiling-fan
+                icon_color: >
+                  {% if is_state('climate.clim_chambre_maxence', 'off') %}grey
+                  {% elif state_attr('climate.clim_chambre_maxence',
+                  'hvac_mode') == 'cool' %}light-blue {% else %}deep-orange{%
+                  endif %}
+                badge_icon: >
+                  {% if is_state('climate.clim_chambre_maxence', 'off')
+                  %}mdi:power-off {% elif
+                  state_attr('climate.clim_chambre_maxence', 'hvac_mode') ==
+                  'cool' %}mdi:snowflake {% else %}mdi:fire{% endif %}
+                badge_color: >
+                  {% if is_state('climate.clim_chambre_maxence', 'off') %}grey
+                  {% elif state_attr('climate.clim_chambre_maxence',
+                  'hvac_mode') == 'cool' %}light-blue {% else %}deep-orange{%
+                  endif %}
+                tap_action:
+                  action: more-info
+                  entity: climate.clim_chambre_maxence
+                card_mod:
+                  style: |
+                    ha-card {
+                      {% if is_state('climate.clim_chambre_maxence', 'off') %}
+                        background: rgba(255,255,255,0.03); border-left: 4px solid #757575;
+                      {% elif state_attr('climate.clim_chambre_maxence', 'hvac_mode') == 'cool' %}
+                        background: rgba(3, 169, 244, 0.1); border-left: 4px solid #03A9F4;
+                      {% else %}
+                        background: rgba(255, 87, 34, 0.1); border-left: 4px solid #FF5722;
+                      {% endif %}
+                      transition: all 0.3s ease;
+                    }
+              - type: thermostat
+                entity: climate.clim_chambre_maxence
+                features:
+                  - type: climate-hvac-modes
+                    hvac_modes:
+                      - 'off'
+                      - heat
+                      - cool
+                      - fan_only
+                      - dry
+                  - type: climate-fan-modes
+                  - type: climate-swing-modes
