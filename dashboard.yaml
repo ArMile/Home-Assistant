@@ -84,7 +84,7 @@ views:
                       is_state('input_boolean.mode_planning_vacances_maison',
                       'on') %}mdi:home-heart {% elif
                       is_state('input_boolean.mode_planning_weekend_prolonge',
-                      'on') %}mdi:party-popper {% else %}mdi:calendar-check{%
+                      'on') %}mdi:party-popper {% else %}mdi:calendar-check {%
                       endif %}
                     content: >
                       {% if is_state('input_boolean.mode_vacances', 'on') %}Mode
@@ -97,8 +97,8 @@ views:
                       is_state('input_boolean.mode_planning_vacances_maison',
                       'on') %}Vacances Maison {% elif
                       is_state('input_boolean.mode_planning_weekend_prolonge',
-                      'on') %}Weekend Prolongé {% else %}Planning Normal{% endif
-                      %}
+                      'on') %}Weekend Prolongé {% else %}Planning Normal {%
+                      endif %}
                     icon_color: >
                       {% if is_state('input_boolean.mode_vacances', 'on') %}blue
                       {% elif is_state('input_boolean.chauffage_manuel', 'on')
@@ -109,7 +109,7 @@ views:
                       is_state('input_boolean.mode_planning_vacances_maison',
                       'on') %}pink {% elif
                       is_state('input_boolean.mode_planning_weekend_prolonge',
-                      'on') %}purple {% else %}green{% endif %}
+                      'on') %}purple {% else %}green {% endif %}
                     tap_action:
                       action: navigate
                       navigation_path: /modes-de-planning/etat-planning
@@ -367,38 +367,86 @@ views:
               - type: horizontal-stack
                 cards:
                   - type: custom:mushroom-template-card
+                    entity: switch.maison_portail
                     primary: Portail
+                    secondary: Disponible
                     icon: mdi:gate
-                    icon_color: orange
+                    icon_color: |
+                      {% if is_state('switch.maison_portail', 'on') %}
+                        red
+                      {% else %}
+                        green
+                      {% endif %}
                     layout: vertical
                     tap_action:
                       action: toggle
-                      entity: switch.maison_portail
-                    hold_action:
-                      action: more-info
-                      entity: switch.maison_portail
+                    card_mod:
+                      style: |
+                        ha-card {
+                          {% if is_state('switch.maison_portail', 'on') %}
+                            background: rgba(244, 67, 54, 0.15);
+                          {% else %}
+                            background: rgba(76, 175, 80, 0.1);
+                          {% endif %}
+                          transition: all 3s ease-in-out;
+                        }
+                        mushroom-shape-icon {
+                          transition: color 3s ease-in-out;
+                        }
                   - type: custom:mushroom-template-card
+                    entity: switch.maison_garage_1
                     primary: Garage Julie
+                    secondary: Disponible
                     icon: mdi:garage-variant
-                    icon_color: orange
+                    icon_color: |
+                      {% if is_state('switch.maison_garage_1', 'on') %}
+                        red
+                      {% else %}
+                        green
+                      {% endif %}
                     layout: vertical
                     tap_action:
                       action: toggle
-                      entity: switch.maison_garage_1
-                    hold_action:
-                      action: more-info
-                      entity: switch.maison_garage_1
+                    card_mod:
+                      style: |
+                        ha-card {
+                          {% if is_state('switch.maison_garage_1', 'on') %}
+                            background: rgba(244, 67, 54, 0.15);
+                          {% else %}
+                            background: rgba(76, 175, 80, 0.1);
+                          {% endif %}
+                          transition: all 3s ease-in-out;
+                        }
+                        mushroom-shape-icon {
+                          transition: color 3s ease-in-out;
+                        }
                   - type: custom:mushroom-template-card
+                    entity: switch.maison_garage_2
                     primary: Garage Arnaud
+                    secondary: Disponible
                     icon: mdi:garage-variant
-                    icon_color: orange
+                    icon_color: |
+                      {% if is_state('switch.maison_garage_2', 'on') %}
+                        red
+                      {% else %}
+                        green
+                      {% endif %}
                     layout: vertical
                     tap_action:
                       action: toggle
-                      entity: switch.maison_garage_2
-                    hold_action:
-                      action: more-info
-                      entity: switch.maison_garage_2
+                    card_mod:
+                      style: |
+                        ha-card {
+                          {% if is_state('switch.maison_garage_2', 'on') %}
+                            background: rgba(244, 67, 54, 0.15);
+                          {% else %}
+                            background: rgba(76, 175, 80, 0.1);
+                          {% endif %}
+                          transition: all 3s ease-in-out;
+                        }
+                        mushroom-shape-icon {
+                          transition: color 3s ease-in-out;
+                        }
           - type: vertical-stack
             cards:
               - type: custom:mushroom-template-card
