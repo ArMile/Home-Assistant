@@ -3,19 +3,9 @@ icon: mdi:robot-vacuum
 path: dreame-x50-ultra
 views:
   - title: Contrôle
-    icon: mdi:robot-vacuum
-    path: control
+    icon: mdi:flash
+    path: control-rapide
     cards:
-      - type: custom:mushroom-chips-card
-        alignment: left
-        chips:
-          - type: template
-            icon: mdi:home
-            content: Accueil
-            icon_color: blue
-            tap_action:
-              action: navigate
-              navigation_path: /dashboard-accueil/home
       - type: custom:button-card
         entity: vacuum.x50_ultra_complete
         name: X50 Ultra Complete
@@ -64,9 +54,6 @@ views:
           - value: paused
             icon: mdi:pause-circle
             color: '#FFC107'
-          - value: returning
-            icon: mdi:home-import-outline
-            color: '#9C27B0'
       - type: grid
         columns: 3
         square: false
@@ -85,7 +72,6 @@ views:
               state:
                 - font-size: 28px
                 - font-weight: bold
-                - margin-top: 8px
             state:
               - operator: '>='
                 value: 90
@@ -103,13 +89,9 @@ views:
                 value: 30
                 icon: mdi:battery-40
                 color: '#FF9800'
-              - operator: '>='
-                value: 10
+              - operator: default
                 icon: mdi:battery-20
                 color: '#F44336'
-              - operator: default
-                icon: mdi:battery-alert
-                color: '#D32F2F'
           - type: custom:button-card
             entity: sensor.x50_ultra_complete_cleaned_area
             name: Surface
@@ -126,7 +108,6 @@ views:
               state:
                 - font-size: 28px
                 - font-weight: bold
-                - margin-top: 8px
           - type: custom:button-card
             entity: sensor.x50_ultra_complete_cleaning_time
             name: Durée
@@ -143,7 +124,6 @@ views:
               state:
                 - font-size: 28px
                 - font-weight: bold
-                - margin-top: 8px
       - type: horizontal-stack
         cards:
           - type: custom:button-card
@@ -226,349 +206,6 @@ views:
                 - font-size: 16px
                 - font-weight: bold
                 - color: white
-      - type: custom:xiaomi-vacuum-map-card
-        entity: vacuum.x50_ultra_complete
-        map_source:
-          camera: camera.x50_ultra_complete_map
-        calibration_source:
-          camera: true
-        title: RDC xxxxxxxx
-        map_modes:
-          - template: vacuum_clean_segment
-            predefined_selections:
-              - id: 1
-                label:
-                  text: Meeting Room
-                  x: 5025
-                  'y': 6675
-                  offset_y: 35
-                icon:
-                  name: mdi:presentation
-                  x: 5025
-                  'y': 6675
-                outline:
-                  - - 8850
-                    - 11750
-                  - - -1000
-                    - 11750
-                  - - -1000
-                    - 3650
-                  - - 8850
-                    - 3650
-              - id: 2
-                label:
-                  text: Kitchen
-                  x: 5775
-                  'y': 2875
-                  offset_y: 35
-                icon:
-                  name: mdi:chef-hat
-                  x: 5775
-                  'y': 2875
-                outline:
-                  - - 8650
-                    - 3900
-                  - - 2500
-                    - 3900
-                  - - 2500
-                    - 200
-                  - - 8650
-                    - 200
-              - id: 3
-                label:
-                  text: Bathroom
-                  x: 7575
-                  'y': -425
-                  offset_y: 35
-                icon:
-                  name: mdi:toilet
-                  x: 7575
-                  'y': -425
-                outline:
-                  - - 8650
-                    - 550
-                  - - 6400
-                    - 550
-                  - - 6400
-                    - -1100
-                  - - 8650
-                    - -1100
-              - id: 4
-                label:
-                  text: Office
-                  x: 6925
-                  'y': -3025
-                  offset_y: 35
-                icon:
-                  name: mdi:monitor-shimmer
-                  x: 6925
-                  'y': -3025
-                outline:
-                  - - 8700
-                    - -1100
-                  - - 5450
-                    - -1100
-                  - - 5450
-                    - -4300
-                  - - 8700
-                    - -4300
-              - id: 5
-                label:
-                  text: Living Room
-                  x: 2175
-                  'y': -1975
-                  offset_y: 35
-                icon:
-                  name: mdi:sofa-outline
-                  x: 2175
-                  'y': -1975
-                outline:
-                  - - 6650
-                    - 500
-                  - - -700
-                    - 500
-                  - - -700
-                    - -4450
-                  - - 6650
-                    - -4450
-              - id: 6
-                label:
-                  text: Dining Hall
-                  x: 1275
-                  'y': 2225
-                  offset_y: 35
-                icon:
-                  name: mdi:room-service-outline
-                  x: 1275
-                  'y': 2225
-                outline:
-                  - - 3600
-                    - 3950
-                  - - -700
-                    - 3950
-                  - - -700
-                    - 200
-                  - - 3600
-                    - 200
-          - template: vacuum_clean_zone
-          - template: vacuum_goto
-        areas:
-          - name: Tapis Living Room
-            outline:
-              - - 900
-                - -4450
-              - - 1800
-                - -4450
-              - - 1800
-                - -3800
-              - - 900
-                - -3800
-            fill_color: rgba(255, 0, 0, 0.1)
-            stroke_color: rgba(255, 0, 0, 0.5)
-            stroke_width: 2
-            label:
-              text: Tapis
-              x: 1350
-              'y': -4125
-              color: rgba(255, 0, 0, 0.8)
-          - name: Tapis Meeting Room
-            outline:
-              - - 1000
-                - 4550
-              - - 2550
-                - 4550
-              - - 2550
-                - 6750
-              - - 1000
-                - 6750
-            fill_color: rgba(255, 0, 0, 0.1)
-            stroke_color: rgba(255, 0, 0, 0.5)
-            stroke_width: 2
-            label:
-              text: Tapis
-              x: 1775
-              'y': 5650
-              color: rgba(255, 0, 0, 0.8)
-          - name: Tapis Office
-            outline:
-              - - 3550
-                - -3500
-              - - 4450
-                - -3500
-              - - 4450
-                - -1500
-              - - 3550
-                - -1500
-            fill_color: rgba(255, 0, 0, 0.1)
-            stroke_color: rgba(255, 0, 0, 0.5)
-            stroke_width: 2
-            label:
-              text: Tapis
-              x: 4000
-              'y': -2500
-              color: rgba(255, 0, 0, 0.8)
-          - name: Tapis Kitchen
-            outline:
-              - - 5900
-                - 2900
-              - - 6850
-                - 2900
-              - - 6850
-                - 3450
-              - - 5900
-                - 3450
-            fill_color: rgba(255, 0, 0, 0.1)
-            stroke_color: rgba(255, 0, 0, 0.5)
-            stroke_width: 2
-            label:
-              text: Tapis
-              x: 6375
-              'y': 3175
-              color: rgba(255, 0, 0, 0.8)
-        points:
-          - x: -456
-            'y': -85
-            icon:
-              name: mdi:ev-station
-              color: '#4CAF50'
-            label:
-              text: Base
-              x: -456
-              'y': -85
-              offset_y: 40
-              color: '#4CAF50'
-          - x: 5037
-            'y': 2222
-            icon:
-              name: mdi:router-wireless
-              color: '#2196F3'
-            label:
-              text: WiFi
-              x: 5037
-              'y': 2222
-              offset_y: 40
-              color: '#2196F3'
-          - x: -675
-            'y': 5825
-            icon:
-              name: mdi:television
-              color: '#9E9E9E'
-            label:
-              text: TV
-              x: -675
-              'y': 5825
-              offset_y: 40
-          - x: 4575
-            'y': 6625
-            icon:
-              name: mdi:bed
-              color: '#9E9E9E'
-            label:
-              text: Lit
-              x: 4575
-              'y': 6625
-              offset_y: 40
-          - x: 7475
-            'y': 225
-            icon:
-              name: mdi:toilet
-              color: '#9E9E9E'
-            label:
-              text: WC
-              x: 7475
-              'y': 225
-              offset_y: 40
-          - x: -225
-            'y': -3125
-            icon:
-              name: mdi:bowl
-              color: '#FF9800'
-            label:
-              text: Gamelle
-              x: -225
-              'y': -3125
-              offset_y: 40
-          - x: 5975
-            'y': 3325
-            icon:
-              name: mdi:bowl
-              color: '#FF9800'
-          - x: 5575
-            'y': 3225
-            icon:
-              name: mdi:bowl
-              color: '#FF9800'
-          - x: 4325
-            'y': 4125
-            icon:
-              name: mdi:paw
-              color: '#FF9800'
-            label:
-              text: Panier
-              x: 4325
-              'y': 4125
-              offset_y: 40
-        map_locked: false
-        two_finger_pan: false
-      - type: entities
-        title: 🎯 Modes de nettoyage
-        show_header_toggle: false
-        card_mod:
-          style: |
-            ha-card {
-              border-radius: 15px;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            }
-        entities:
-          - entity: select.x50_ultra_complete_suction_level
-            name: Puissance d'aspiration
-            icon: mdi:fan
-          - entity: select.x50_ultra_complete_cleaning_mode
-            name: Mode de nettoyage
-            icon: mdi:broom
-          - entity: select.x50_ultra_complete_mop_pad_humidity
-            name: Humidité serpillère
-            icon: mdi:water-percent
-          - entity: number.x50_ultra_complete_wetness_level
-            name: Niveau d'humidité
-            icon: mdi:water
-          - entity: select.x50_ultra_complete_cleaning_route
-            name: Trajectoire de nettoyage
-            icon: mdi:map-marker-path
-      - type: entities
-        title: ⚙️ Options avancées
-        show_header_toggle: false
-        card_mod:
-          style: |
-            ha-card {
-              border-radius: 15px;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            }
-        entities:
-          - entity: switch.x50_ultra_complete_self_clean
-            name: Auto-nettoyage base
-            icon: mdi:dishwasher
-          - entity: switch.x50_ultra_complete_auto_drying
-            name: Séchage automatique
-            icon: mdi:fan
-          - entity: select.x50_ultra_complete_drying_time
-            name: Durée séchage
-            icon: mdi:timer
-          - entity: switch.x50_ultra_complete_carpet_boost
-            name: Boost sur tapis
-            icon: mdi:rug
-          - entity: switch.x50_ultra_complete_ai_obstacle_detection
-            name: Détection obstacles IA
-            icon: mdi:eye
-          - entity: switch.x50_ultra_complete_ai_pet_detection
-            name: Détection animaux
-            icon: mdi:paw
-          - entity: switch.x50_ultra_complete_mop_extend
-            name: Extension serpillère
-            icon: mdi:arrow-expand-horizontal
-          - entity: switch.x50_ultra_complete_intensive_carpet_cleaning
-            name: Nettoyage intensif tapis
-            icon: mdi:rug
       - type: vertical-stack
         cards:
           - type: custom:mushroom-title-card
@@ -891,10 +528,143 @@ views:
                   - font-size: 14px
                   - font-weight: 600
                   - color: white
+      - type: vertical-stack
+        cards:
+          - type: markdown
+            content: |
+              ## 🎯 Modes de nettoyage
+              **Choisissez CleanGenius (automatique) ou Personnalisé (manuel)**
+          - type: entities
+            title: 🤖 Mode CleanGenius (Automatique)
+            show_header_toggle: false
+            card_mod:
+              style: |
+                ha-card {
+                  border-radius: 15px;
+                  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.02) 100%);
+                }
+            entities:
+              - entity: select.x50_ultra_complete_cleangenius
+                name: Mode CleanGenius
+                icon: mdi:auto-fix
+              - entity: select.x50_ultra_complete_cleangenius_mode
+                name: Type de nettoyage
+                icon: mdi:broom
+          - type: entities
+            title: ⚙️ Mode Personnalisé (Manuel)
+            show_header_toggle: false
+            card_mod:
+              style: |
+                ha-card {
+                  border-radius: 15px;
+                  background: linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(33, 150, 243, 0.02) 100%);
+                }
+            entities:
+              - entity: select.x50_ultra_complete_cleaning_mode
+                name: Mode de nettoyage
+                icon: mdi:broom
+              - entity: select.x50_ultra_complete_suction_level
+                name: Puissance d'aspiration
+                icon: mdi:fan
+              - entity: switch.x50_ultra_complete_max_suction_power
+                name: Puissance maximale (boost)
+                icon: mdi:lightning-bolt
+              - entity: select.x50_ultra_complete_mop_pad_humidity
+                name: Humidité serpillère
+                icon: mdi:water-percent
+              - entity: select.x50_ultra_complete_mop_extend_frequency
+                name: Fréquence lavage serpillère
+                icon: mdi:water-sync
+              - type: divider
+              - entity: select.x50_ultra_complete_self_clean_frequency
+                name: Auto-nettoyage serpillère
+                icon: mdi:washing-machine
+              - entity: number.x50_ultra_complete_self_clean_area
+                name: Surface (m²)
+                icon: mdi:ruler-square
+              - entity: number.x50_ultra_complete_self_clean_time
+                name: Temps (minutes)
+                icon: mdi:timer-outline
+              - type: divider
+              - entity: select.x50_ultra_complete_cleaning_route
+                name: Itinéraire
+                icon: mdi:map-marker-path
   - title: Pièces
     icon: mdi:floor-plan
     path: rooms
     cards:
+      - type: custom:xiaomi-vacuum-map-card
+        entity: vacuum.x50_ultra_complete
+        map_source:
+          camera: camera.x50_ultra_complete_map
+        calibration_source:
+          camera: true
+        title: RDC Vennecy
+        map_modes:
+          - template: vacuum_clean_segment
+            predefined_selections:
+              - id: 1
+                label:
+                  text: Meeting Room
+                  x: 5025
+                  'y': 6675
+                  offset_y: 35
+                icon:
+                  name: mdi:presentation
+                  x: 5025
+                  'y': 6675
+              - id: 2
+                label:
+                  text: Kitchen
+                  x: 5775
+                  'y': 2875
+                  offset_y: 35
+                icon:
+                  name: mdi:chef-hat
+                  x: 5775
+                  'y': 2875
+              - id: 3
+                label:
+                  text: Bathroom
+                  x: 7575
+                  'y': -425
+                  offset_y: 35
+                icon:
+                  name: mdi:toilet
+                  x: 7575
+                  'y': -425
+              - id: 4
+                label:
+                  text: Office
+                  x: 6925
+                  'y': -3025
+                  offset_y: 35
+                icon:
+                  name: mdi:monitor-shimmer
+                  x: 6925
+                  'y': -3025
+              - id: 5
+                label:
+                  text: Living Room
+                  x: 2175
+                  'y': -1975
+                  offset_y: 35
+                icon:
+                  name: mdi:sofa-outline
+                  x: 2175
+                  'y': -1975
+              - id: 6
+                label:
+                  text: Dining Hall
+                  x: 1275
+                  'y': 2225
+                  offset_y: 35
+                icon:
+                  name: mdi:room-service-outline
+                  x: 1275
+                  'y': 2225
+          - template: vacuum_clean_zone
+          - template: vacuum_goto
       - type: entities
         title: 📍 Pièce en cours
         entities:
@@ -909,8 +679,8 @@ views:
         square: true
         cards:
           - type: custom:button-card
-            name: Meeting Room
-            icon: mdi:presentation
+            name: Salon
+            icon: mdi:sofa
             tap_action:
               action: call-service
               service: dreame_vacuum.vacuum_clean_segment
@@ -931,10 +701,9 @@ views:
               name:
                 - font-size: 18px
                 - font-weight: bold
-                - margin-top: 10px
           - type: custom:button-card
-            name: Kitchen
-            icon: mdi:chef-hat
+            name: Salle à Manger
+            icon: mdi:silverware-fork-knife
             tap_action:
               action: call-service
               service: dreame_vacuum.vacuum_clean_segment
@@ -955,10 +724,9 @@ views:
               name:
                 - font-size: 18px
                 - font-weight: bold
-                - margin-top: 10px
           - type: custom:button-card
-            name: Bathroom
-            icon: mdi:toilet
+            name: Salle de Bain
+            icon: mdi:shower
             tap_action:
               action: call-service
               service: dreame_vacuum.vacuum_clean_segment
@@ -979,10 +747,9 @@ views:
               name:
                 - font-size: 18px
                 - font-weight: bold
-                - margin-top: 10px
           - type: custom:button-card
-            name: Office
-            icon: mdi:monitor-shimmer
+            name: Entrée / Couloir
+            icon: mdi:door-open
             tap_action:
               action: call-service
               service: dreame_vacuum.vacuum_clean_segment
@@ -1003,10 +770,9 @@ views:
               name:
                 - font-size: 18px
                 - font-weight: bold
-                - margin-top: 10px
           - type: custom:button-card
-            name: Living Room
-            icon: mdi:sofa-outline
+            name: Bureau
+            icon: mdi:desk
             tap_action:
               action: call-service
               service: dreame_vacuum.vacuum_clean_segment
@@ -1027,10 +793,9 @@ views:
               name:
                 - font-size: 18px
                 - font-weight: bold
-                - margin-top: 10px
           - type: custom:button-card
-            name: Dining Hall
-            icon: mdi:room-service-outline
+            name: Cuisine
+            icon: mdi:chef-hat
             tap_action:
               action: call-service
               service: dreame_vacuum.vacuum_clean_segment
@@ -1051,25 +816,6 @@ views:
               name:
                 - font-size: 18px
                 - font-weight: bold
-                - margin-top: 10px
-      - type: entities
-        title: 🎨 Paramètres Meeting Room
-        show_header_toggle: false
-        entities:
-          - entity: select.x50_ultra_complete_room_1_suction_level
-          - entity: select.x50_ultra_complete_room_1_mop_pad_humidity
-          - entity: select.x50_ultra_complete_room_1_cleaning_mode
-          - entity: select.x50_ultra_complete_room_1_cleaning_times
-          - entity: number.x50_ultra_complete_room_1_wetness_level
-      - type: entities
-        title: 🍳 Paramètres Kitchen
-        show_header_toggle: false
-        entities:
-          - entity: select.x50_ultra_complete_room_2_suction_level
-          - entity: select.x50_ultra_complete_room_2_mop_pad_humidity
-          - entity: select.x50_ultra_complete_room_2_cleaning_mode
-          - entity: select.x50_ultra_complete_room_2_cleaning_times
-          - entity: number.x50_ultra_complete_room_2_wetness_level
   - title: Entretien
     icon: mdi:wrench
     path: maintenance
@@ -1080,10 +826,8 @@ views:
         entities:
           - entity: sensor.x50_ultra_complete_status
             name: Statut
-            icon: mdi:information
           - entity: sensor.x50_ultra_complete_error
             name: Erreur
-            icon: mdi:alert-circle
       - type: custom:button-card
         name: 🧹 Brosse principale
         entity: sensor.x50_ultra_complete_main_brush_left
@@ -1102,32 +846,14 @@ views:
             - font-size: 18px
             - font-weight: bold
         state:
-          - operator: null
+          - operator: <
             value: 20
             color: '#F44336'
-          - operator: null
+          - operator: <
             value: 50
             color: '#FF9800'
           - operator: default
             color: '#4CAF50'
-        custom_fields:
-          button:
-            card:
-              type: custom:button-card
-              entity: button.x50_ultra_complete_reset_main_brush
-              icon: mdi:refresh
-              tap_action:
-                action: call-service
-                service: button.press
-                service_data:
-                  entity_id: button.x50_ultra_complete_reset_main_brush
-              styles:
-                card:
-                  - width: 40px
-                  - height: 40px
-                  - border-radius: 20px
-                icon:
-                  - width: 24px
       - type: custom:button-card
         name: 🌪️ Brosse latérale
         entity: sensor.x50_ultra_complete_side_brush_left
@@ -1146,10 +872,10 @@ views:
             - font-size: 18px
             - font-weight: bold
         state:
-          - operator: null
+          - operator: <
             value: 20
             color: '#F44336'
-          - operator: null
+          - operator: <
             value: 50
             color: '#FF9800'
           - operator: default
@@ -1172,10 +898,10 @@ views:
             - font-size: 18px
             - font-weight: bold
         state:
-          - operator: null
+          - operator: <
             value: 20
             color: '#F44336'
-          - operator: null
+          - operator: <
             value: 50
             color: '#FF9800'
           - operator: default
@@ -1198,10 +924,10 @@ views:
             - font-size: 18px
             - font-weight: bold
         state:
-          - operator: null
+          - operator: <
             value: 20
             color: '#F44336'
-          - operator: null
+          - operator: <
             value: 50
             color: '#FF9800'
           - operator: default
@@ -1224,10 +950,10 @@ views:
             - font-size: 18px
             - font-weight: bold
         state:
-          - operator: null
+          - operator: <
             value: 20
             color: '#F44336'
-          - operator: null
+          - operator: <
             value: 50
             color: '#FF9800'
           - operator: default
@@ -1238,32 +964,24 @@ views:
         entities:
           - entity: sensor.x50_ultra_complete_clean_water_tank_status
             name: Réservoir eau propre
-            icon: mdi:water-plus
           - entity: sensor.x50_ultra_complete_dirty_water_tank_status
             name: Réservoir eau sale
-            icon: mdi:water-minus
           - entity: sensor.x50_ultra_complete_dust_bag_status
             name: Sac à poussière
-            icon: mdi:trash-can
           - entity: sensor.x50_ultra_complete_detergent_status
             name: Détergent
-            icon: mdi:spray-bottle
       - type: entities
         title: 🔧 Actions de maintenance
         show_header_toggle: false
         entities:
           - entity: button.x50_ultra_complete_self_clean
             name: Lancer auto-nettoyage base
-            icon: mdi:dishwasher
           - entity: button.x50_ultra_complete_manual_drying
             name: Lancer séchage manuel
-            icon: mdi:weather-sunny
           - entity: button.x50_ultra_complete_start_auto_empty
             name: Vider le bac
-            icon: mdi:delete-empty
           - entity: button.x50_ultra_complete_base_station_cleaning
             name: Nettoyage station
-            icon: mdi:car-wash
   - title: Statistiques
     icon: mdi:chart-line
     path: stats
@@ -1274,16 +992,12 @@ views:
         entities:
           - entity: sensor.x50_ultra_complete_cleaning_count
             name: Nombre de nettoyages
-            icon: mdi:counter
           - entity: sensor.x50_ultra_complete_total_cleaning_time
             name: Temps total de nettoyage
-            icon: mdi:timer
           - entity: sensor.x50_ultra_complete_total_cleaned_area
             name: Surface totale nettoyée
-            icon: mdi:ruler-square
           - entity: sensor.x50_ultra_complete_first_cleaning_date
             name: Premier nettoyage
-            icon: mdi:calendar
       - type: history-graph
         title: Historique batterie (24h)
         hours_to_show: 24
@@ -1296,16 +1010,12 @@ views:
         refresh_interval: 300
         entities:
           - entity: sensor.x50_ultra_complete_cleaned_area
-      - type: markdown
-        title: 📜 Historique récent
-        content: |
-          {{ states('sensor.x50_ultra_complete_cleaning_history') }}
   - title: Paramètres
     icon: mdi:cog
     path: settings
     cards:
       - type: entities
-        title: 🌙 Mode Ne Pas Déranger (DND)
+        title: 🌙 Mode Ne Pas Déranger
         show_header_toggle: false
         entities:
           - entity: switch.x50_ultra_complete_dnd
@@ -1315,17 +1025,17 @@ views:
           - entity: time.x50_ultra_complete_dnd_end
             name: Heure fin
           - entity: switch.x50_ultra_complete_dnd_disable_resume_cleaning
-            name: Désactiver reprise nettoyage
+            name: Désactiver reprise
           - entity: switch.x50_ultra_complete_dnd_disable_auto_empty
             name: Désactiver vidage auto
           - entity: switch.x50_ultra_complete_dnd_reduce_volume
-            name: Réduire le volume
+            name: Réduire volume
       - type: entities
         title: ⚡ Charge hors pointe
         show_header_toggle: false
         entities:
           - entity: switch.x50_ultra_complete_off_peak_charging
-            name: Activer charge hors pointe
+            name: Activer
           - entity: time.x50_ultra_complete_off_peak_charging_start
             name: Heure début
           - entity: time.x50_ultra_complete_off_peak_charging_end
@@ -1335,19 +1045,19 @@ views:
         show_header_toggle: false
         entities:
           - entity: switch.x50_ultra_complete_voice_assistant
-            name: Activer assistant vocal
+            name: Activer
           - entity: select.x50_ultra_complete_voice_assistant_language
             name: Langue
           - entity: number.x50_ultra_complete_volume
             name: Volume
           - entity: switch.x50_ultra_complete_streaming_voice_prompt
-            name: Annonces vocales streaming
+            name: Annonces streaming
       - type: entities
         title: 🤖 Intelligence artificielle
         show_header_toggle: false
         entities:
           - entity: switch.x50_ultra_complete_ai_obstacle_detection
-            name: Détection obstacles IA
+            name: Détection obstacles
           - entity: switch.x50_ultra_complete_ai_obstacle_picture
             name: Photos obstacles
           - entity: switch.x50_ultra_complete_ai_pet_detection
@@ -1355,29 +1065,29 @@ views:
           - entity: switch.x50_ultra_complete_pet_picture
             name: Photos animaux
           - entity: switch.x50_ultra_complete_pet_focused_detection
-            name: Détection ciblée animaux
+            name: Détection ciblée
           - entity: switch.x50_ultra_complete_ai_furniture_detection
             name: Détection meubles
           - entity: switch.x50_ultra_complete_ai_fluid_detection
             name: Détection liquides
           - entity: switch.x50_ultra_complete_fuzzy_obstacle_detection
-            name: Détection floue obstacles
+            name: Détection floue
       - type: entities
         title: 🧼 Nettoyage avancé
         show_header_toggle: false
         entities:
-          - entity: select.x50_ultra_complete_cleangenius
-            name: CleanGenius
           - entity: switch.x50_ultra_complete_customized_cleaning
             name: Nettoyage personnalisé
           - entity: switch.x50_ultra_complete_resume_cleaning
             name: Reprendre nettoyage
           - entity: select.x50_ultra_complete_carpet_cleaning
             name: Mode tapis
+          - entity: switch.x50_ultra_complete_carpet_boost
+            name: Boost tapis
           - entity: switch.x50_ultra_complete_intensive_carpet_cleaning
-            name: Nettoyage intensif tapis
+            name: Nettoyage intensif
           - entity: switch.x50_ultra_complete_clean_carpets_first
-            name: Nettoyer tapis d'abord
+            name: Tapis d'abord
           - entity: switch.x50_ultra_complete_floor_direction_cleaning
             name: Nettoyage directionnel
       - type: entities
@@ -1385,17 +1095,17 @@ views:
         show_header_toggle: false
         entities:
           - entity: switch.x50_ultra_complete_auto_mount_mop
-            name: Montage auto serpillère
+            name: Montage auto
           - entity: switch.x50_ultra_complete_mop_extend
-            name: Extension serpillère
+            name: Extension
           - entity: select.x50_ultra_complete_mop_extend_frequency
             name: Fréquence extension
           - entity: switch.x50_ultra_complete_gap_cleaning_extension
-            name: Extension nettoyage recoins
+            name: Extension recoins
           - entity: switch.x50_ultra_complete_mopping_under_furnitures
-            name: Nettoyage sous meubles
+            name: Sous meubles
           - entity: switch.x50_ultra_complete_side_reach
-            name: Atteindre les côtés
+            name: Atteindre côtés
       - type: entities
         title: 🏠 Station avancée
         show_header_toggle: false
@@ -1416,6 +1126,10 @@ views:
             name: Température eau
           - entity: switch.x50_ultra_complete_uv_sterilization
             name: Stérilisation UV
+          - entity: switch.x50_ultra_complete_auto_drying
+            name: Séchage auto
+          - entity: select.x50_ultra_complete_drying_time
+            name: Durée séchage
       - type: entities
         title: ⚙️ Divers
         show_header_toggle: false
@@ -1427,7 +1141,7 @@ views:
           - entity: switch.x50_ultra_complete_stain_avoidance
             name: Évitement taches
           - entity: switch.x50_ultra_complete_fill_light
-            name: Lumière d'appoint
+            name: Lumière appoint
           - entity: number.x50_ultra_complete_camera_light_brightness
             name: Luminosité caméra
           - entity: select.x50_ultra_complete_map_rotation
