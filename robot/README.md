@@ -6,7 +6,7 @@ Pilotage du Robot via extention HACS "Dreame vacuum integration for Home Assista
 
 Permet de gérer quasi tous les paramètres comme depuis application.
 
-Activation auto quand alarme enclenchée ou manuel. Choix du nettoyage complet ou selon les pièces sélectionnées et dans l'ordre de sélection
+Activation auto quand alarme activée depuis 15mn ou manuelle. Choix du nettoyage complet ou selon les pièces sélectionnées et dans l'ordre de sélection
 
 Dernières modifications : aspiration seule / Apsiration puis lavage / Aspiration ET lavage / etc... / Mode Auto (CleanGenius) ou Personnalisé (Manuel)
 
