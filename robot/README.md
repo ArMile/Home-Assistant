@@ -22,6 +22,7 @@ Le dossier contient :
 - `automations.yaml` — automations liées à cette fonctionnalité
 - `dashboard.yaml` — Code YAML du dashboard 
 - `scripts.yaml` — scripts
+- `fr.json` — Fichier de traduction Dreame modifié (/config/custom_components/dreame_vacuum/translations/fr.json)
 - `README.md` — documentation spécifique
 
 ## Dashboards
