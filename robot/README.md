@@ -2,7 +2,7 @@
 
 Pilotage du Robot via extention HACS "Dreame vacuum integration for Home Assistant"
 
-/!\ ATTENTION /!\ : Utilisez la version Beta
+/!\ ATTENTION /!\ : Utilisez la version Beta (v2.0.0B22 au 28/03/2026)
 
 Permet de gérer quasi tous les paramètres comme depuis application.
 
