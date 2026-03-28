@@ -14,8 +14,8 @@ Dernières modifications : aspiration seule / Apsiration puis lavage / Aspiratio
 ![Dashboard : Contrôles"](screenshots/dashboard-dreame_Controle.png)
 ![Dashboard : Pièces"](screenshots/dashboard-dreame_Pieces.png)
 ![Dashboard : Entretien"](screenshots/dashboard-dreame_Entretien.png)
-![Dashboard : Statistiques"](screenshots/dashboard-dreame_Statistiques.png)
 ![Dashboard : Paramètres"](screenshots/dashboard-dreame_Parametres.png)
+![Dashboard : Statistiques"](screenshots/dashboard-dreame_Statistiques.png)
 
 Le dossier contient :
 - `helpers.yaml` — helpers HA (input_number, input_boolean, input_datetime, template sensors)
